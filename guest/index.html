@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en" data-app="guest-details">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guest Details</title>
+<meta name="theme-color" content="#d9771f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/guest-192.png">
+<link rel="apple-touch-icon" href="../icons/guest-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Guest Details">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="../shared/bridge.js?v=cd908760"></script>
+<base target="_top">
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: sticky ink header, progress meters, then list + editor (side by side on wide, full-screen editor on phone) */
+:root{
+  --bg:#f4f5f8; --surface:#ffffff; --sunk:#eceef4; --line:#d9dce6;
+  --ink:#1d2340; --muted:#5d6380; --faint:#8a8fa8;
+  --accent:#d9771f; --accent-ink:#ffffff; --accent-soft:#fbead8;
+  --ok:#2f8a57; --ok-soft:#dff1e6; --warn:#b4560f; --warn-soft:#fdebd9; --bad:#b3263b; --bad-soft:#fbe1e5;
+  --head:#1d2340; --head-ink:#f4f5f8;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Figtree",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12152a; --surface:#1a1e36; --sunk:#232845; --line:#30365a;
+  --ink:#e8eaf5; --muted:#a3a8c4; --faint:#7a7f9e;
+  --accent:#f0953c; --accent-ink:#1a1206; --accent-soft:#3a2a18;
+  --ok:#5fc98a; --ok-soft:#1d3a2a; --warn:#f0a35c; --warn-soft:#3a2a18; --bad:#f07a8c; --bad-soft:#3d1d25;
+  --head:#0c0e1d; --head-ink:#e8eaf5; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12152a; --surface:#1a1e36; --sunk:#232845; --line:#30365a;
+  --ink:#e8eaf5; --muted:#a3a8c4; --faint:#7a7f9e;
+  --accent:#f0953c; --accent-ink:#1a1206; --accent-soft:#3a2a18;
+  --ok:#5fc98a; --ok-soft:#1d3a2a; --warn:#f0a35c; --warn-soft:#3a2a18; --bad:#f07a8c; --bad-soft:#3d1d25;
+  --head:#0c0e1d; --head-ink:#e8eaf5; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--head)}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1180px;margin:0 auto}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--head);color:var(--head-ink)}
+header .wrap{display:flex;align-items:center;gap:12px;padding-block:12px}
+h1{font-family:var(--display);font-weight:700;font-size:22px;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-family:var(--body);font-weight:500;font-size:12px;opacity:.7;letter-spacing:.02em}
+.sp{flex:1}
+.sync{font-size:12px;opacity:.8;text-align:right}
+button{font:inherit;cursor:pointer}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 14px;font-weight:600}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent;color:inherit;border-color:rgba(255,255,255,.25)}
+.btn:disabled{opacity:.5;cursor:default}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.meters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding-block:14px}
+.card{border:2px dashed var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;background:var(--bg)}
+.card.has{border-style:solid;border-color:var(--ok);background:var(--ok-soft)}
+.card h3{margin:0;font-family:var(--display);font-size:17px;font-weight:700}
+.card p{margin:0;color:var(--muted);font-size:13px}
+.uprow{display:flex;gap:8px;flex-wrap:wrap}
+.upbtn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:8px;border-radius:12px;padding:14px 18px;font-weight:700;font-size:15px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.upbtn.alt{background:var(--surface);color:var(--ink);border-color:var(--line)}
+.upbtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.upbtn svg{width:20px;height:20px;flex:none}
+.files{display:flex;gap:8px;flex-wrap:wrap}
+.files a{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;color:var(--ink);text-decoration:none;font-weight:600;font-size:13px}
+.thumb{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.upstat{font-size:13px;font-weight:600}
+.upstat.err{color:var(--bad)} .upstat.ok{color:var(--ok)}
+.prog{height:6px;border-radius:3px;background:var(--sunk);overflow:hidden}
+.prog i{display:block;height:100%;width:40%;background:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.prog i{animation:slide 1.1s ease-in-out infinite}@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(260%)}}}
+.meter{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;color:var(--ink)}
+.meter.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.meter .lab{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.meter .num{font-family:var(--display);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.meter .num span{font-size:13px;color:var(--faint);font-weight:500}
+.bar{height:5px;background:var(--sunk);border-radius:3px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--ok)}
+
+.tools{display:flex;gap:8px;flex-wrap:wrap;padding-bottom:10px}
+.tools input,.tools select{font:inherit;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:9px 12px}
+#q{flex:1 1 220px;min-width:0}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;padding-bottom:40px;align-items:start}
+.list{display:flex;flex-direction:column;gap:6px;min-width:0}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding:10px 4px 2px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;cursor:pointer;gap:4px 10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;color:var(--ink);width:100%}
+.row.sel{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.row .nm{font-weight:600;overflow-wrap:anywhere}
+.row .meta{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.id{font-family:var(--mono);font-size:11px;color:var(--faint)}
+.chips{display:flex;gap:4px}
+.chip{font-size:11px;font-weight:700;border-radius:6px;padding:2px 6px;font-family:var(--mono)}
+.chip.miss{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.call{grid-row:1/3;grid-column:3;width:42px;height:42px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:18px;text-decoration:none;background:var(--ok);color:#fff}
+.call.off{background:var(--warn-soft);opacity:.7;filter:grayscale(.6)}
+
+.panel{position:sticky;top:calc(env(safe-area-inset-top,0px) + 72px);background:var(--surface);border:1px solid var(--line);border-radius:16px;min-width:0}
+.panel .ph{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start}
+.panel h2{font-family:var(--display);font-size:20px;margin:0;font-weight:700;text-wrap:balance}
+.panel .sub{color:var(--muted);font-size:13px}
+.panel .pb{padding:16px 18px;display:flex;flex-direction:column;gap:18px;max-height:calc(100vh - 220px);overflow:auto}
+.panel .pf{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.empty{padding:40px 24px;color:var(--muted);text-align:center}
+fieldset{border:0;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+legend{font-size:11px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted);margin-bottom:8px;display:flex;gap:8px;align-items:center}
+legend .track{font-family:var(--body);text-transform:none;letter-spacing:0;font-weight:600;color:var(--accent);text-decoration:none}
+label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted);font-weight:600;min-width:0}
+label.full{grid-column:1/-1}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 10px;min-width:0;width:100%}
+input.mono{font-family:var(--mono);letter-spacing:.04em}
+input.changed,select.changed{border-color:var(--accent);background:var(--accent-soft)}
+.hint{font-size:12px;font-weight:500}
+.hint.bad{color:var(--bad)} .hint.ok{color:var(--ok)}
+.mates{grid-column:1/-1;background:var(--sunk);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.mates b{font-size:12px;color:var(--muted)}
+.mates label{flex-direction:row;align-items:center;gap:8px;color:var(--ink);font-weight:500;font-size:13px}
+.mates input{width:auto}
+.copy{grid-column:1/-1}
+.msg{font-size:13px;flex:1;min-width:0}
+.msg.err{color:var(--bad)} .msg.ok{color:var(--ok)}
+.banner{margin-top:14px;border-radius:12px;padding:14px 16px;background:var(--bad-soft);color:var(--ink);border:1px solid var(--line)}
+.banner b{display:block;margin-bottom:4px}
+.back{display:none}
+.skel{height:52px;border-radius:12px;background:var(--sunk)}
+
+@media (max-width:820px){
+  .main{grid-template-columns:minmax(0,1fr)}
+  .meters{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .meter .num{font-size:18px}
+  .panel{position:fixed;inset:0;z-index:20;border-radius:0;border:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+  .panel .pb{max-height:none;flex:1}
+  .panel.closed{display:none}
+  .back{display:inline-block}
+  .ph,.pb,.pf{padding-left:max(16px,env(safe-area-inset-left,0px))!important;padding-right:max(16px,env(safe-area-inset-right,0px))!important}
+}
+@media (prefers-reduced-motion:no-preference){.row,.meter{transition:border-color .15s,box-shadow .15s}}
+
+html{-webkit-text-size-adjust:100%}
+body{margin:0;padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+.pin{position:fixed;inset:0;z-index:50;background:var(--head);color:var(--head-ink);display:flex;align-items:center;justify-content:center;padding:24px}
+.pin form{width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px}
+.pin h2{font-family:var(--display);font-size:28px;margin:0}
+.pin p{margin:0;opacity:.8}
+.pin input{font-family:var(--mono);font-size:26px;letter-spacing:.3em;text-align:center;background:rgba(255,255,255,.08);color:var(--head-ink);border:1px solid rgba(255,255,255,.25);border-radius:12px;padding:14px}
+.pin .btn{padding:14px;font-size:16px}
+#pinMsg{min-height:1.4em;color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="pin" id="pinScreen" hidden>
+  <form id="pinForm" autocomplete="off">
+    <h2>Guest Details</h2>
+    <p>Enter the family PIN to open the guest list.</p>
+    <input id="pinInput" type="password" inputmode="numeric" maxlength="12" aria-label="PIN">
+    <button class="btn primary" id="pinBtn" type="submit">Open</button>
+    <div id="pinMsg" role="status"></div>
+  </form>
+</div>
+<header><div class="wrap">
+  <h1>Guest Details<small>Aman &amp; Sandhya · Griha Pravesh · 31 Oct – 3 Nov</small></h1>
+  <div class="sp"></div>
+  <div class="sync" id="sync">Connecting to the sheet…</div>
+  <button class="btn ghost" id="refresh" type="button">Refresh</button>
+  <button class="btn ghost" id="mylink" type="button" title="Link that stays signed in">📲 My link</button>
+  <button class="btn ghost" id="lock" type="button" title="Lock this phone">Lock</button>
+</div></header>
+
+<div class="wrap">
+  <div id="banner"></div>
+  <div class="meters" id="meters">
+    <button class="meter" data-f="card" type="button"><div class="lab">Aadhaar card</div><div class="num">–</div><div class="bar"><i style="width:0"></i></div></button>
+    <button class="meter" data-f="phone" type="button"><div class="lab">Mobile</div><div class="num">–</div><div class="bar"><i style="width:0"></i></div></button>
+    <button class="meter" data-f="arr" type="button"><div class="lab">Arrival</div><div class="num">–</div><div class="bar"><i style="width:0"></i></div></button>
+    <button class="meter" data-f="dep" type="button"><div class="lab">Departure</div><div class="num">–</div><div class="bar"><i style="width:0"></i></div></button>
+  </div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Search name, city, room…" autocomplete="off">
+    <select id="group"><option value="">All groups</option></select>
+    <select id="need">
+      <option value="">Everyone</option>
+      <option value="any">Anything missing</option>
+      <option value="card">Missing Aadhaar card</option>
+      <option value="phone">Missing mobile</option>
+      <option value="arr">Missing arrival</option>
+      <option value="dep">Missing departure</option>
+    </select>
+  </div>
+  <div class="main">
+    <div class="list" id="list">
+      <div class="skel"></div><div class="skel"></div><div class="skel"></div><div class="skel"></div>
+    </div>
+    <section class="panel closed" id="panel" aria-live="polite">
+      <div class="empty">Pick a guest to upload their Aadhaar card, add a mobile number and travel. Everything saves straight into the MASTER sheet.</div>
+    </section>
+  </div>
+</div>
+
+<script>
+const YEAR = 2026;
+const IMG_TARGET = 1.2 * 1024 * 1024;   // photos are shrunk to about this size
+const UPLOAD_MAX = 25 * 1024 * 1024;    // videos larger than this are refused
+const ARR = ["arrDate","arrMode","arrName","arrNo","arrTime"];
+const DEP = ["depDate","depMode","depName","depNo","depTime"];
+const EDIT = ["phone",...ARR,...DEP];
+
+let pin = "", guests = [], selId = null, busy = false, uploading = false, filterNeed = "", lastThumb = {};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const digits = v => String(v||"").replace(/\D/g,"");
+const store = { get(k){ try{ return localStorage.getItem(k)||""; }catch(e){ return ""; } }, set(k,v){ try{ v ? localStorage.setItem(k,v) : localStorage.removeItem(k); }catch(e){} } };
+
+function run(fn, ...args){
+  return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+}
+const errText = e => String((e && (e.message || e)) || "Something went wrong").replace(/^Exception:\s*/,"");
+
+/* ---------- values ---------- */
+function toTime(v){ v=String(v||"").trim().toUpperCase(); const m=v.match(/^(\d{1,2})[.:](\d{2})/); if(!m) return ""; let h=+m[1]; if(/PM/.test(v)&&h<12) h+=12; if(/AM/.test(v)&&h===12) h=0; return String(h).padStart(2,"0")+":"+m[2]; }
+function phoneNorm(v){ const s=String(v||"").trim(); if(!s) return ""; const d=digits(s); if(d.length===10) return "+91 "+d.slice(0,5)+" "+d.slice(5); if(d.length===12&&d.startsWith("91")) return "+91 "+d.slice(2,7)+" "+d.slice(7); return s; }
+function phoneOk(v){ const s=String(v||"").trim(), d=digits(s); return d.length===10 || (d.length===12&&d.startsWith("91")) || (s.startsWith("+")&&d.length>=8); }
+function norm(k, v){
+  v = v==null ? "" : String(v).trim();
+  if(k.endsWith("Date")) return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
+  if(k.endsWith("Time")) return toTime(v);
+  if(k==="phone") return phoneNorm(v);
+  return v.toUpperCase();
+}
+const cardLinks = v => String(v||"").match(/https?:\/\/[^\s|,]+/g) || [];
+const hasArr = g => g.own || g.arrMode==="BY ROAD" || !!(g.arrDate && g.arrTime && g.arrMode);
+const hasDep = g => g.own || g.depMode==="BY ROAD" || !!(g.depDate && g.depTime && g.depMode);
+const missing = g => ({ card:!cardLinks(g.card).length, phone:!digits(g.phone), arr:!hasArr(g), dep:!hasDep(g) });
+function prep(list){ return list.map(g => { const o={...g}; for(const k of EDIT) o[k]=norm(k,o[k]); return o; }); }
+
+/* ---------- PIN (kept in the page link too, so it survives phones clearing storage) ---------- */
+const PARAMS = window.__PARAMS;
+function keepUrl(q){ try{ google.script.history.replace(null, q, ""); }catch(e){} }
+let myUrl = store.get("gd_url");
+function signedIn(r){ pin = "S:" + r.tok; myUrl = r.url ? r.url + "?app=guest-details&s=" + r.tok : myUrl; store.set("family_pin", pin); store.set("gd_url", myUrl); keepUrl({ app: "guest-details", s: r.tok }); }
+function showPin(msg){
+  $("#pinScreen").hidden = false;
+  $("#pinMsg").textContent = msg || "";
+  setTimeout(()=>$("#pinInput").focus(), 50);
+}
+$("#pinForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const p = $("#pinInput").value.trim(); if(!p) return;
+  $("#pinBtn").disabled = true; $("#pinMsg").textContent = "Checking…";
+  try{ const r = await run("guestDetails_session", p); signedIn(r); $("#pinScreen").hidden = true; load(); }
+  catch(err){ $("#pinMsg").textContent = errText(err); }
+  finally{ $("#pinBtn").disabled = false; }
+});
+
+/* ---------- load ---------- */
+function failed(err){
+  const t = errText(err);
+  if(/Wrong PIN|PIN is not set/.test(t)){ store.set("family_pin",""); showPin(t); return true; }
+  return false;
+}
+async function load(){
+  $("#sync").textContent = "Reading the sheet…";
+  try{
+    const r = await run("guestDetails_load", pin);
+    guests = prep(r.guests);
+    $("#banner").innerHTML = "";
+    $("#sync").textContent = "Synced " + new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"});
+    fillGroups(); render(); if(selId) openEditor(selId);
+  }catch(err){
+    if(failed(err)) return;
+    $("#sync").textContent = "Not synced";
+    $("#banner").innerHTML = `<div class="banner" role="alert"><b>Couldn't read the guest sheet.</b>${esc(errText(err))}</div>`;
+  }
+}
+
+/* ---------- list ---------- */
+function fillGroups(){
+  const cur = $("#group").value;
+  const gs = [...new Set(guests.map(g=>g.group).filter(Boolean))].sort();
+  $("#group").innerHTML = `<option value="">All groups</option>` + gs.map(g=>`<option${g===cur?" selected":""}>${esc(g)}</option>`).join("");
+}
+function meters(){
+  const n = guests.length || 1, done = {card:0, phone:0, arr:0, dep:0};
+  guests.forEach(g=>{ const m=missing(g); for(const k in done) if(!m[k]) done[k]++; });
+  document.querySelectorAll(".meter").forEach(el=>{
+    const k = el.dataset.f;
+    el.querySelector(".num").innerHTML = `${done[k]}<span> / ${guests.length}</span>`;
+    el.querySelector(".bar i").style.width = (100*done[k]/n)+"%";
+    el.classList.toggle("on", filterNeed===k); el.setAttribute("aria-pressed", filterNeed===k);
+  });
+}
+function render(){
+  meters();
+  const q = $("#q").value.trim().toLowerCase(), grp = $("#group").value;
+  const rows = guests.filter(g=>{
+    if(grp && g.group!==grp) return false;
+    if(q && ![g.name,g.city,g.room,g.id,g.group].join(" ").toLowerCase().includes(q)) return false;
+    const m = missing(g);
+    if(filterNeed==="any") return m.card||m.phone||m.arr||m.dep;
+    if(filterNeed) return m[filterNeed];
+    return true;
+  });
+  if(!rows.length){ $("#list").innerHTML = `<div class="empty">No guests match. Clear the search or filter.</div>`; return; }
+  const sorted = grp||q ? rows : [...rows].sort((a,b)=> a.group.localeCompare(b.group) || a.row-b.row);
+  let html = "", last = null;
+  for(const g of sorted){
+    if(!q && g.group!==last){ html += `<div class="grp">${esc(g.group||"No group")}</div>`; last=g.group; }
+    const m = missing(g);
+    const chip = (k,l)=>`<span class="chip ${m[k]?"miss":"ok"}">${l}</span>`;
+    const tel = phoneOk(g.phone) ? (d => d.length===10 ? "91"+d : d)(digits(g.phone)) : "";
+    html += `<div class="row${g.id===selId?" sel":""}" data-id="${esc(g.id)}" role="button" tabindex="0">
+      <span class="nm">${esc(g.name)}</span>
+      <span class="chips">${chip("card","CARD")}${chip("arr","ARR")}${chip("dep","DEP")}</span>
+      ${tel ? `<a class="call" href="tel:+${tel}" title="Call ${esc(g.name)}">📞</a>` : `<span class="call off" title="No mobile number">📞</span>`}
+      <span class="meta"><span class="id">${esc(g.id)}</span><span>${esc(g.city)}</span>${g.room?`<span>· Room ${esc(g.room)}</span>`:""}</span>
+    </div>`;
+  }
+  $("#list").innerHTML = html;
+}
+
+/* ---------- editor ---------- */
+const byId = id => guests.find(g=>g.id===id);
+const roommates = g => g.room && g.room!=="NONE" ? guests.filter(x=>x.room===g.room && x.id!==g.id) : [];
+function trackUrl(mode,no){ if(!no) return ""; const n=no.replace(/\s/g,""); if(mode==="FLIGHT") return "https://www.flightradar24.com/data/flights/"+n.toLowerCase(); if(mode==="TRAIN") return "https://www.railyatri.in/live-train-status/"+n; return ""; }
+function travelBlock(P, g, label){
+  const url = trackUrl(g[P+"Mode"], g[P+"No"]);
+  return `<fieldset><legend>${label}${url?` <a class="track" href="${url}" target="_blank" rel="noopener">Track ${esc(g[P+"No"])}</a>`:""}</legend>
+    <label>Date<input type="date" id="f-${P}Date" value="${esc(g[P+"Date"])}" min="2026-10-20" max="2026-11-10"></label>
+    <label>Time<input type="time" id="f-${P}Time" value="${esc(g[P+"Time"])}"></label>
+    <label>Mode<select id="f-${P}Mode">${["","TRAIN","FLIGHT","BY ROAD"].map(o=>`<option value="${o}"${o===g[P+"Mode"]?" selected":""}>${o||"—"}</option>`).join("")}</select></label>
+    <label>Train / flight no.<input id="f-${P}No" class="mono" value="${esc(g[P+"No"])}" placeholder="12958 or 6E 6878" autocomplete="off"></label>
+    <label class="full">Train / airline name<input id="f-${P}Name" value="${esc(g[P+"Name"])}" placeholder="RAJDHANI, INDIGO…" autocomplete="off"></label>
+  </fieldset>`;
+}
+function openEditor(id){
+  const g = byId(id), panel = $("#panel");
+  if(!g){ selId=null; panel.innerHTML = `<div class="empty">That guest is no longer active in the sheet.</div>`; return; }
+  selId = id; render();
+  const mates = roommates(g);
+  const others = guests.filter(x=>x.id!==g.id && (hasArr(x)||hasDep(x))).sort((a,b)=> (a.room===g.room?-1:0)-(b.room===g.room?-1:0) || (a.group===g.group?-1:0)-(b.group===g.group?-1:0) || a.name.localeCompare(b.name));
+  panel.classList.remove("closed");
+  panel.innerHTML = `
+    <div class="ph">
+      <button class="btn back" id="close" type="button">← List</button>
+      <div style="min-width:0"><h2>${esc(g.name)}</h2>
+      <div class="sub"><span class="id">${esc(g.id)}</span> · ${esc(g.group)} · ${esc(g.city)}${g.room?` · Room ${esc(g.room)}`:""}</div></div>
+    </div>
+    <form class="pb" id="form" novalidate>
+      <div id="cardBox"></div>
+      <fieldset><legend>Contact</legend>
+        <label class="full">Mobile number<input id="f-phone" class="mono" type="tel" value="${esc(g.phone)}" placeholder="98250 12345" autocomplete="off"><span class="hint" id="h-phone"></span></label>
+      </fieldset>
+      ${others.length?`<label class="copy">Same travel as another guest
+        <select id="copyFrom"><option value="">Copy arrival &amp; departure from…</option>${others.map(o=>`<option value="${esc(o.id)}">${esc(o.name)}${o.room===g.room&&g.room?" (same room)":""} — ${esc([o.arrNo,o.depNo].filter(Boolean).join(" / ")||o.arrMode||"")}</option>`).join("")}</select></label>`:""}
+      ${travelBlock("arr", g, "Arrival in Ahmedabad")}
+      ${travelBlock("dep", g, "Departure")}
+      ${mates.length?`<div class="mates"><b>Also save this travel for room ${esc(g.room)}</b>${mates.map(m=>`<label><input type="checkbox" class="mate" value="${esc(m.id)}"${(!hasArr(m)&&!hasDep(m))?" checked":""}> ${esc(m.name)} <span class="id">${hasArr(m)||hasDep(m)?"has travel":"no travel yet"}</span></label>`).join("")}</div>`:""}
+    </form>
+    <div class="pf"><span class="msg" id="msg"></span>
+      <button class="btn" id="reset" type="button">Undo changes</button>
+      <button class="btn primary" id="save" type="button">Save to sheet</button></div>`;
+  renderCard(g); wireEditor(g);
+}
+function formVals(){ const o={}; for(const k of EDIT){ const el=$("#f-"+k); if(el) o[k]=norm(k, el.value); } return o; }
+const diff = (g, v) => EDIT.filter(k => (v[k]??"") !== (g[k]??""));
+function validate(){
+  const p=$("#f-phone").value, hp=$("#h-phone");
+  if(!p.trim()){ hp.textContent=""; } else if(phoneOk(p)){ hp.textContent="Saved as "+phoneNorm(p); hp.className="hint ok"; } else { hp.textContent="Enter a 10-digit mobile number"; hp.className="hint bad"; }
+  return !p.trim() || phoneOk(p);
+}
+function markChanged(g){
+  const ch = new Set(diff(g, formVals()));
+  for(const k of EDIT){ const el=$("#f-"+k); if(el) el.classList.toggle("changed", ch.has(k)); }
+  $("#save").disabled = busy || !ch.size; $("#reset").disabled = busy || !ch.size;
+}
+function setMsg(t, kind){ const m=$("#msg"); if(m){ m.textContent=t; m.className="msg"+(kind?" "+kind:""); } }
+function wireEditor(g){
+  const form = $("#form");
+  form.addEventListener("input", ()=>{ validate(); markChanged(g); setMsg(""); });
+  form.addEventListener("change", ()=>{ validate(); markChanged(g); });
+  form.addEventListener("submit", e=>e.preventDefault());
+  $("#copyFrom")?.addEventListener("change", e=>{
+    const o = byId(e.target.value); if(!o) return;
+    for(const k of [...ARR,...DEP]){ const el=$("#f-"+k); if(el) el.value = o[k]||""; }
+    validate(); markChanged(g); setMsg("Travel copied from "+o.name+". Press Save to keep it.");
+  });
+  $("#reset").addEventListener("click", ()=>openEditor(g.id));
+  $("#save").addEventListener("click", ()=>save(g));
+  $("#close")?.addEventListener("click", ()=>{ $("#panel").classList.add("closed"); selId=null; render(); });
+  validate(); markChanged(g);
+}
+async function save(g){
+  if(busy) return;
+  if(!validate()){ setMsg("Fix the mobile number before saving.","err"); return; }
+  const v = formVals(), keys = diff(g, v); if(!keys.length) return;
+  const changes = {}; keys.forEach(k=>changes[k]=v[k]);
+  const travel = keys.some(k=>ARR.includes(k)||DEP.includes(k));
+  const also = travel ? [...document.querySelectorAll(".mate:checked")].map(x=>x.value) : [];
+  if(travel && also.length){ for(const k of [...ARR,...DEP]) changes[k]=v[k]; }
+  busy = true; markChanged(g); setMsg("Saving…");
+  try{
+    const r = await run("guestDetails_save", pin, g.id, changes, also);
+    guests = prep(r.guests); busy = false; openEditor(g.id);
+    setMsg(`Saved${also.length?` for ${also.length+1} people`:""}.`, "ok");
+  }catch(err){
+    busy = false; if(failed(err)) return;
+    markChanged(g); setMsg(errText(err), "err");
+  }
+}
+
+/* ---------- Aadhaar card upload ---------- */
+const CAM = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+const PICK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></svg>`;
+function renderCard(g, status){
+  const box = $("#cardBox"); if(!box) return;
+  const links = cardLinks(g.card);
+  box.innerHTML = `<div class="card${links.length?" has":""}">
+    <div><h3>${links.length ? "Aadhaar card uploaded" : "Aadhaar card"}</h3>
+    <p>${links.length ? "Add the other side or a clearer photo if needed." : "Take a photo of the front and back, or a short video turning the card over."}</p></div>
+    ${links.length||lastThumb[g.id] ? `<div class="files">${lastThumb[g.id]?`<img class="thumb" src="${lastThumb[g.id]}" alt="Last photo uploaded for ${esc(g.name)}">`:""}${links.map((u,i)=>`<a href="${esc(u)}" target="_blank" rel="noopener">Card ${i+1} ↗</a>`).join("")}</div>` : ""}
+    <div class="uprow">
+      <label class="upbtn">${CAM}<span>Take photo / video</span><input type="file" id="upCam" accept="image/*,video/*" capture="environment" ${uploading?"disabled":""}></label>
+      <label class="upbtn alt">${PICK}<span>Choose from phone (one or many)</span><input type="file" id="upPick" accept="image/*,video/*,application/pdf" multiple ${uploading?"disabled":""}></label>
+    </div>
+    ${status || ""}
+  </div>`;
+  const on = e => { const fs = Array.from(e.target.files || []); e.target.value = ""; if(fs.length) uploadCards(g, fs); };
+  $("#upCam").addEventListener("change", on); $("#upPick").addEventListener("change", on);
+}
+function blobToDataUrl(blob){ return new Promise((res, rej)=>{ const r=new FileReader(); r.onload=()=>res(String(r.result)); r.onerror=()=>rej(r.error); r.readAsDataURL(blob); }); }
+async function shrinkImage(file){
+  try{
+    const bmp = await createImageBitmap(file);
+    let w=bmp.width, h=bmp.height; const max=2200;
+    if(Math.max(w,h)>max){ const s=max/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+    const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(bmp,0,0,w,h);
+    for(const q of [0.88,0.78,0.66,0.55]){ const b=await new Promise(r=>c.toBlob(r,"image/jpeg",q)); if(b && (b.size<=IMG_TARGET || q===0.55)) return b; }
+  }catch(e){}
+  return file;
+}
+async function prepFile(file){
+  const isVideo=/^video\//.test(file.type), isPdf=file.type==="application/pdf";
+  let blob=file, mime=file.type||"application/octet-stream";
+  if(!isVideo && !isPdf){ blob = await shrinkImage(file); mime = blob.type || mime; }
+  if(blob.size > UPLOAD_MAX) throw new Error(`“${file.name}” is ${(blob.size/1048576).toFixed(0)} MB. Keep videos short (under 25 MB), or take a photo instead.`);
+  const ext = (mime.split("/")[1]||"bin").replace("jpeg","jpg").replace("quicktime","mov").split(";")[0];
+  return { dataUrl: await blobToDataUrl(blob), mime, ext, isImg: !isVideo && !isPdf };
+}
+async function uploadCards(g, files){
+  if(uploading) return;
+  uploading = true;
+  const total = files.length, done = [], errs = [];
+  const status = t => renderCard(g, t);
+  for(let i=0;i<total;i++){
+    const label = total>1 ? `file ${i+1} of ${total}` : `${esc(g.name)}'s card`;
+    status(`<div class="upstat">Uploading ${label}…</div><div class="prog"><i style="width:${Math.round(i/total*100)}%"></i></div>`);
+    try{
+      const p = await prepFile(files[i]);
+      const r = await run("guestDetails_upload", pin, g.id, p.dataUrl.split(",")[1], p.mime, p.ext);
+      if(p.isImg) lastThumb[g.id] = p.dataUrl;
+      guests = prep(r.guests); const fresh = byId(g.id); if(fresh) g.card = fresh.card;
+      done.push(r.title);
+    }catch(err){
+      if(failed(err)){ uploading = false; return; }
+      errs.push(errText(err));
+    }
+  }
+  uploading = false; render();
+  const ok = done.length ? `<div class="upstat ok">Saved ${done.length===1?"“"+esc(done[0])+"”":done.length+" files"} to Drive and added to the sheet.</div>` : "";
+  const bad = errs.length ? `<div class="upstat err">${errs.map(esc).join("<br>")}</div>` : "";
+  status(ok + bad);
+}
+
+/* ---------- events ---------- */
+$("#list").addEventListener("click", e=>{ if(e.target.closest(".call")) return; const b=e.target.closest(".row"); if(b && !busy && !uploading) openEditor(b.dataset.id); });
+$("#list").addEventListener("keydown", e=>{ if(e.key!=="Enter" && e.key!==" ") return; const b=e.target.closest(".row"); if(b && !busy && !uploading){ e.preventDefault(); openEditor(b.dataset.id); } });
+$("#q").addEventListener("input", render);
+$("#group").addEventListener("change", render);
+$("#need").addEventListener("change", e=>{ filterNeed=e.target.value; render(); });
+$("#meters").addEventListener("click", e=>{ const m=e.target.closest(".meter"); if(!m) return; filterNeed = filterNeed===m.dataset.f ? "" : m.dataset.f; $("#need").value=filterNeed; render(); });
+$("#refresh").addEventListener("click", ()=>{ if(!busy && !uploading && pin) load(); });
+$("#lock").addEventListener("click", ()=>{ store.set("family_pin",""); pin=""; guests=[]; keepUrl({ app: "guest-details" }); render(); showPin(""); });
+$("#mylink").addEventListener("click", ()=>{
+  if(!myUrl) return alert("Lock and open again with the PIN once to get your link.");
+  const box = document.createElement("div"); box.className = "pin";
+  box.innerHTML = '<form><h2>My link</h2><p>This link always opens Guest Details without the PIN. Save it, or open it and Add to Home screen. Do not share it.</p><input readonly value="' + esc(myUrl) + '" style="font-size:13px;letter-spacing:0"><button class="btn primary" type="button" id="mlCopy">Copy</button><a class="btn" target="_blank" href="https:' + String.fromCharCode(47,47) + 'wa.me/?text=' + encodeURIComponent("My guest details link: " + myUrl) + '">WhatsApp it to me</a><button class="btn" type="button" id="mlClose">Close</button></form>';
+  document.body.appendChild(box);
+  box.querySelector("#mlClose").onclick = () => box.remove();
+  box.querySelector("#mlCopy").onclick = () => { try{ navigator.clipboard.writeText(myUrl); box.querySelector("#mlCopy").textContent = "Copied"; }catch(e){} };
+});
+
+pin = PARAMS.s ? "S:" + PARAMS.s : store.get("family_pin");
+if(pin && pin.indexOf("S:") === 0){ keepUrl({ app: "guest-details", s: pin.slice(2) }); store.set("family_pin", pin); }
+if(pin && pin.indexOf("S:") !== 0) run("guestDetails_session", pin).then(signedIn).catch(()=>{});   /* old plain PIN: upgrade */
+if(pin) load(); else showPin("");
+</script>
+</body>
+</html>

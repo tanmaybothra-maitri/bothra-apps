@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en" data-app="driver">
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My trips</title>
+<meta name="theme-color" content="#2f6a52">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="../icons/travel-192.png">
+<link rel="apple-touch-icon" href="../icons/travel-180.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="My trips">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<script src="../shared/bridge.js?v=cd908760"></script>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root{--bg:#f3f4f1;--card:#fff;--ink:#1c2420;--mut:#6b736e;--line:#e3e6e1;--pri:#2f6a52;--pri2:#e5f0ea;
+        --red:#c43a2c;--red2:#fdecea;--amb:#a86a12;--amb2:#fff4dd;--blu:#2b5c8e;--blu2:#e7f0fa;--pur:#5a3e9e;--pur2:#eee9fa;--grn:#2c7a4c;--grn2:#e5f4eb;
+        --r:14px;--sh:0 1px 2px rgba(0,0,0,.05),0 1px 8px rgba(0,0,0,.04)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans",sans-serif}
+  a{color:var(--pri)}
+  header{position:sticky;top:0;z-index:5;background:var(--pri);color:#fff;padding:12px 14px 6px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+  .hrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  header h1{font-size:18px;margin:0;font-weight:700}
+  header .sub{font-size:12.5px;opacity:.9;margin-top:2px}
+  .upd{font-size:11.5px;opacity:.85;display:flex;align-items:center;gap:6px}
+  .ibtn{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:50%;width:34px;height:34px;font-size:16px;cursor:pointer}
+  .dates{display:flex;gap:6px;overflow-x:auto;padding:10px 0 6px;scrollbar-width:none}
+  .dates::-webkit-scrollbar{display:none}
+  .dates button{flex:0 0 auto;border:1px solid rgba(255,255,255,.45);background:transparent;color:#fff;border-radius:18px;padding:6px 12px;font-size:13px;cursor:pointer}
+  .dates button.on{background:#fff;color:var(--pri);font-weight:700;border-color:#fff}
+  main{padding:12px 12px 100px;max-width:760px;margin:0 auto}
+  nav{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom);box-shadow:0 -2px 8px rgba(0,0,0,.04)}
+  nav button{flex:1;border:0;background:none;padding:8px 0 9px;font-size:11.5px;color:var(--mut);cursor:pointer}
+  nav button b{display:block;font-size:20px;line-height:1.2;filter:grayscale(1);opacity:.7}
+  nav button.on{color:var(--pri);font-weight:700} nav button.on b{filter:none;opacity:1}
+  .hint{font-size:13px;color:var(--mut);margin:0 2px 10px}
+  .sec{display:flex;align-items:center;gap:8px;margin:18px 2px 6px;font-size:13px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+  .sec .n{background:#e7e9e5;color:var(--ink);border-radius:10px;padding:0 8px;font-size:12px}
+  .sec.red{color:var(--red)} .sec.red .n{background:var(--red2);color:var(--red)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;margin:8px 0;box-shadow:var(--sh)}
+  .card.late{border-left:5px solid var(--red)} .card.prob{border-left:5px solid var(--red);background:#fffafa}
+  .card.done{opacity:.65}
+  .card.hero{border:2px solid var(--pri);padding:16px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .tm{font-size:22px;font-weight:800;letter-spacing:-.01em;line-height:1.1}
+  .tml{font-size:11.5px;color:var(--mut)}
+  .pill{display:inline-block;border-radius:12px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap;background:#eef0ed;color:#444}
+  .p-way{background:var(--blu2);color:var(--blu)} .p-pick{background:var(--amb2);color:var(--amb)} .p-in{background:var(--pur2);color:var(--pur)}
+  .p-done{background:var(--grn2);color:var(--grn)} .p-bad{background:var(--red2);color:var(--red)}
+  .route{font-size:16px;font-weight:700;margin:8px 0 2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .arrow{color:var(--mut);font-weight:400}
+  .tags{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
+  .tag{font-size:12px;background:#f1f2ef;border-radius:8px;padding:2px 8px;color:#444}
+  .tag.car{background:var(--pri2);color:var(--pri);font-weight:700}
+  .tag.gift{background:var(--amb2);color:var(--amb)}
+  .meta{font-size:13px;color:var(--mut)}
+  .eta{font-size:13.5px;margin-top:6px;font-weight:600;color:var(--ink)} .eta.bad{color:var(--red)}
+  .prog{display:flex;gap:4px;margin:10px 0 2px} .prog i{flex:1;height:5px;border-radius:3px;background:#e6e8e4} .prog i.on{background:var(--pri)}
+  .progl{display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut)}
+  .who{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+  .who .nm{font-size:13.5px} .who .nm small{display:block;color:var(--mut);font-size:12px}
+  .icons{display:flex;gap:6px;flex-shrink:0}
+  .ic{width:38px;height:38px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:17px;text-decoration:none;border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  .ic.call{background:var(--grn);border-color:var(--grn);color:#fff} .ic.wa{background:#25d366;border-color:#25d366;color:#fff}
+  .ic.off{opacity:.35;pointer-events:none}
+  details.gl{margin-top:8px} details.gl summary{cursor:pointer;font-size:13px;color:var(--pri);font-weight:600;list-style:none} details.gl summary::-webkit-details-marker{display:none}
+  details.gl summary:before{content:'▸ '} details.gl[open] summary:before{content:'▾ '}
+  .g{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-top:1px dashed var(--line)} .g:first-of-type{border-top:0}
+  .g .gn{font-size:14px} .g .gn small{display:block;color:var(--mut);font-size:12px}
+  .acts{display:flex;gap:8px;margin-top:12px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 14px;font-size:14px;font-weight:600;color:var(--ink);text-decoration:none;cursor:pointer;min-height:42px}
+  .btn.pri{background:var(--pri);border-color:var(--pri);color:#fff} .btn.grow{flex:1}
+  .btn.big{min-height:52px;font-size:16px}
+  .btn.red{background:var(--red);border-color:var(--red);color:#fff} .btn.ghost{background:transparent}
+  .btn.sm{min-height:34px;padding:6px 11px;font-size:13px}
+  .nav2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+  /* 16px stops phones from zooming in when a field is tapped */
+  select,input,textarea{font:inherit;font-size:16px !important;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:#fff;max-width:100%;color:var(--ink)}
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--pri2);border-color:var(--pri)}
+  .search{flex:1;min-width:160px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 12px}
+  .stats.three{grid-template-columns:repeat(3,1fr)}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 6px;text-align:center;font-size:12px;color:var(--mut);box-shadow:var(--sh);cursor:default}
+  .stat b{display:block;font-size:24px;color:var(--ink);line-height:1.15}
+  .stat.red{border-color:#f3c3bd;background:var(--red2)} .stat.red b{color:var(--red)}
+  .empty{color:var(--mut);text-align:center;padding:30px 10px} .empty b{display:block;font-size:30px;margin-bottom:6px}
+  .login{max-width:360px;margin:12vh auto;text-align:center;padding:0 20px}
+  .login .logo{font-size:44px} .login h2{margin:6px 0 2px}
+  .login input{width:100%;margin:6px 0;text-align:center;font-size:18px}
+  .login input#pin{letter-spacing:6px;font-size:24px}
+  .ov{position:fixed;inset:0;background:rgba(15,20,18,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center;animation:fade .15s}
+  .sheet{background:#fff;width:100%;max-width:560px;max-height:90vh;overflow:auto;border-radius:20px 20px 0 0;padding:8px 16px calc(16px + env(safe-area-inset-bottom));animation:up .18s}
+  .grab{width:40px;height:4px;border-radius:2px;background:#d6d9d4;margin:4px auto 10px}
+  .sheet h3{margin:2px 0 4px;font-size:18px} .sheet .meta{margin-bottom:8px}
+  .sheet label{display:block;font-size:12.5px;color:var(--mut);margin:10px 0 3px;font-weight:600}
+  .sheet input,.sheet select,.sheet textarea{width:100%}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px}
+  .menu{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+  .menu .btn{justify-content:flex-start;min-height:50px}
+  .stepper{display:flex;align-items:center;justify-content:center;gap:18px;margin:18px 0}
+  .stepper button{width:56px;height:56px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:26px;cursor:pointer}
+  .stepper b{font-size:44px;min-width:60px;text-align:center}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:8px 0}
+  .chips span{border:1px solid var(--line);border-radius:18px;padding:7px 12px;font-size:13.5px;cursor:pointer;background:#fff;user-select:none}
+  .chips span.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+  .chips span.sb{background:var(--amb);color:#fff;border-color:var(--amb)}
+  .legend{display:flex;gap:12px;font-size:12px;color:var(--mut);flex-wrap:wrap;margin:4px 0}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top));transform:translateX(-50%);background:#1d2320;color:#fff;padding:10px 16px;border-radius:22px;font-size:14px;z-index:40;box-shadow:0 4px 14px rgba(0,0,0,.2);animation:up .2s}
+  .loading{position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,#9fd4b9,transparent);background-size:50% 100%;animation:ld 1s linear infinite;z-index:50}
+  .warn{background:var(--red2);color:var(--red);border-radius:8px;padding:2px 8px;font-size:12px;font-weight:700}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)} .row:first-child{border-top:0}
+  .row .l{font-size:14px} .row .l small{display:block;color:var(--mut);font-size:12px}
+  .switch{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .switch input{width:46px;height:26px;appearance:none;background:#d6d9d4;border-radius:13px;position:relative;cursor:pointer;padding:0;border:0}
+  .switch input:before{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+  .switch input:checked{background:var(--pri)} .switch input:checked:before{left:23px}
+  .seg{display:flex;background:#e8eae6;border-radius:12px;padding:3px;margin-bottom:12px}
+  .seg button{flex:1;border:0;background:none;padding:9px;border-radius:10px;font-size:14px;font-weight:600;color:var(--mut);cursor:pointer}
+  .seg button.on{background:#fff;color:var(--ink);box-shadow:var(--sh)}
+  @keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes ld{from{background-position:-50% 0}to{background-position:150% 0}}
+  @media (min-width:700px){.stats{gap:12px}}
+  .bi{display:inline-flex;flex-direction:column;align-items:center;line-height:1.15}.bi b{font-weight:800}.bi small{font-size:.68em;opacity:.85;font-weight:500}
+  .tundo{margin-left:10px;background:#fff;color:#1d2320;border:0;border-radius:14px;padding:6px 12px;font-weight:700;font-size:14px;cursor:pointer}
+  .toast{max-width:92vw;display:flex;align-items:center}
+  .mut{color:var(--mut)}
+  .mini{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:11px 0;border-top:1px solid var(--line);font-size:15px} .mini:first-of-type{border-top:0}
+  /* coordinator */
+  .hd{position:sticky;top:0;z-index:5;background:var(--pri);color:#fff;padding:10px 12px 12px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+  .hd .hrow{gap:8px}
+  .hsel{flex:1;min-width:0;background:rgba(255,255,255,.16);color:#fff;border:0;font-weight:700;font-size:16px;padding:9px 10px;border-radius:12px;appearance:none;-webkit-appearance:none}
+  .hsel.sm{flex:0 0 auto;font-weight:600}
+  .hnav{display:flex;align-items:center;gap:8px;margin-bottom:10px} .hnav .seg2{flex:1}
+  .busyb{opacity:.55;pointer-events:none}
+  .stale{font-size:11px;opacity:.8}
+  .hsel option{color:#1c2420}
+  .srch{position:relative;margin-top:10px} .srch input{width:100%;border:0;border-radius:12px;padding:12px 14px;font-size:16px}
+  .srch button{position:absolute;right:6px;top:6px;border:0;background:#eef0ed;border-radius:50%;width:32px;height:32px;cursor:pointer}
+  .tabs{display:flex;gap:6px;padding:10px 12px 0;max-width:760px;margin:0 auto}
+  .tabs button{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px 4px;font-size:14px;color:var(--mut);cursor:pointer}
+  .tabs button b{color:var(--ink);margin-left:2px} .tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)} .tabs button.on b{color:#fff}
+  main.cm{padding:8px 12px 96px}
+  nav.bn button{position:relative} nav.bn i{position:absolute;top:3px;left:calc(50% + 6px);font-style:normal;background:#e7e9e5;color:var(--ink);border-radius:9px;padding:0 6px;font-size:11px;font-weight:700;line-height:17px}
+  nav.bn i.red{background:var(--red);color:#fff}
+  .nx2{margin:-2px 12px 8px;font-size:12.5px;color:var(--ink);background:#f4f5f2;border-radius:8px;padding:5px 9px}
+  .cn.plan{background:var(--red2);color:var(--red)}
+  .ck{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:15px;color:var(--ink);margin:0;font-weight:500} .ck:first-child{border-top:0} .ck input{width:20px;height:20px}
+  .cc{background:#fff;border:1px solid var(--line);border-radius:16px;margin:8px 0;box-shadow:var(--sh);overflow:hidden}
+  .cc.late{border-left:4px solid var(--red)} .cc.dim{opacity:.6}
+  .cc .m{display:flex;align-items:center;gap:12px;padding:12px 12px 8px;cursor:pointer}
+  .cn{width:46px;height:46px;border-radius:12px;background:var(--pri2);color:var(--pri);font-size:20px;font-weight:800;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;flex-shrink:0}
+  .cn small{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  .cn.sm{width:38px;height:38px;font-size:17px}
+  .cn.home{background:var(--amb2);color:var(--amb)}
+  .clw{margin:-2px 12px 8px;font-size:12.5px;color:var(--red);font-weight:600}
+  .clbar{max-width:736px;margin:10px 12px 0;background:var(--red2);color:var(--red);border-radius:12px;padding:10px 14px;font-weight:700;font-size:14px;cursor:pointer;display:flex;justify-content:space-between} .clbar.on{background:var(--red);color:#fff}
+  .swbox{margin-top:10px;background:var(--amb2);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:8px;font-size:14px} .swbox .btn{min-height:46px;font-size:14px;text-align:left;justify-content:flex-start}
+  .btn.warnb{background:#fff;border:1.5px solid var(--red);color:var(--red)}
+  .hnote{flex:1;text-align:center;font-size:13px;color:var(--mut)}
+  .hc{cursor:pointer} .hc .plus{margin-left:8px;font-size:13px;background:var(--amb2);color:var(--amb);border-radius:10px;padding:3px 8px;font-weight:700}
+  .cc .mid,.fr .mid{flex:1;min-width:0}
+  .cc .t{font-size:20px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .cc .t .s{font-size:14px;font-weight:600;color:var(--ink)}
+  .s{font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rt{text-align:right;flex-shrink:0} .px{font-size:15px;font-weight:700}
+  .dot{display:inline-block;font-size:11px;font-weight:700;border-radius:8px;padding:1px 7px;margin-top:3px}
+  .dot.bad{background:var(--red2);color:var(--red)} .dot.amb{background:var(--amb2);color:var(--amb)} .dot.blu{background:var(--blu2);color:var(--blu)} .dot.grn{background:var(--grn2);color:var(--grn)}
+  .cc .ab{display:flex;gap:8px;padding:0 12px 12px;align-items:center}
+  .cc .go{flex:1;min-height:44px;font-size:16px}
+  .cc .x{padding:4px 12px 10px;font-size:13.5px;border-top:1px dashed var(--line);margin:0 12px 10px;padding-left:0;padding-right:0}
+  .xr{display:grid;grid-template-columns:64px 1fr;gap:8px;padding:4px 0;align-items:baseline} .xr>span:first-child{color:var(--mut);font-size:12px}
+  .gx{display:flex;justify-content:space-between;align-items:center;padding:3px 0 3px 72px}
+  .ic.sm2{width:32px;height:32px;font-size:14px}
+  .fr{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)} .fr:first-child{border-top:0}
+  .t2{font-size:15px;font-weight:700}
+  .card.np{padding:4px 14px}
+  .hc{display:flex;align-items:baseline;gap:6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0 4px;font-size:14px} .hc span:first-child{flex:1} .hc b{font-size:18px}
+  details.more summary{list-style:none;cursor:pointer;margin:14px 2px 4px;font-size:13px;font-weight:700;color:var(--mut)} details.more summary::-webkit-details-marker{display:none}
+  .sec .n,details.more .n{background:#e7e9e5;color:var(--ink);border-radius:10px;padding:0 8px;font-size:12px}
+  .lnk{display:flex;justify-content:space-around;margin-top:14px} .lnk a{color:var(--mut);font-size:14px;cursor:pointer;padding:6px}
+  .help p{margin:8px 0;font-size:14px}
+  .seg2{flex:1;display:flex;background:rgba(255,255,255,.16);border-radius:12px;padding:3px} .seg2 button{flex:1;border:0;background:none;color:#fff;padding:7px;border-radius:9px;font-weight:600;cursor:pointer} .seg2 button.on{background:#fff;color:var(--pri)}
+  /* driver */
+  .dwrap{min-height:100vh;display:flex;flex-direction:column;background:#fff}
+  .dtop{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)} .dtop b{font-size:15px} .dtop small{display:block;color:var(--mut);font-size:12px} .dtop span{display:flex;gap:8px}
+  .dstate{flex:1;padding:22px 18px 10px;text-align:center}
+  .dstate.late .dwhen b{color:var(--red)}
+  .dstate .big{font-size:64px;margin-top:10vh} .dstate h2{margin:10px 0 4px} .nx{margin-top:24px;color:var(--mut)}
+  .ph{display:inline-block;background:var(--pri2);color:var(--pri);border-radius:20px;padding:6px 16px;font-size:17px}
+  .dplace{font-size:28px;font-weight:800;line-height:1.2;margin:18px 0 6px}
+  .dwhen b{font-size:44px;font-weight:800;letter-spacing:-.02em;display:block;line-height:1.1} .dwhen small{color:var(--mut);font-size:13px}
+  .wait{margin:10px auto 0;display:inline-block;background:var(--amb2);color:var(--amb);border-radius:12px;padding:6px 12px;font-size:14px;font-weight:600}
+  .chips2{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:16px 0 8px} .chips2 span{background:#f1f2ef;border-radius:12px;padding:6px 12px;font-size:15px;font-weight:600}
+  .dg{max-width:420px;margin:8px auto;text-align:left} .dg>div{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-top:1px solid var(--line);font-size:16px}
+  .btn.nav{width:100%;max-width:420px;min-height:56px;font-size:18px;margin-top:12px}
+  .dto{margin-top:12px;color:var(--mut);font-size:15px}
+  .dbot{position:sticky;bottom:0;background:#fff;padding:10px 14px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
+  .btn.dgo{width:100%;min-height:84px;font-size:26px;border-radius:18px}
+  .dprob{display:block;margin:10px auto 0;border:0;background:none;color:var(--mut);font-size:14px;cursor:pointer}
+  .gmct{background:#f4f5f2;border-radius:12px;padding:10px 12px;margin:8px 0} .gmct b{font-size:13px}
+  .gmst{margin:8px 2px;font-size:14px} .gmst .red{color:var(--red);font-weight:600}
+  .gmc{border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:8px 0} .gmh{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:14px;margin-bottom:4px}
+  .gmr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--line);font-size:14px}
+  .btn.off{opacity:.5;pointer-events:none} .done1{text-align:center;color:var(--grn);font-weight:700;padding:8px}
+  .tag.warn{background:var(--red2);color:var(--red)}
+</style>
+</head>
+<body>
+<div id="app"><div class="empty"><b>🚗</b>Loading…</div></div>
+<script>
+
+const PARAMS = window.__PARAMS;
+const DRIVER = PARAMS.app === 'driver';
+const TZ = 'Asia/Kolkata';
+const S = { pin: '', who: '', base: null, live: null, mode: 'post', post: '', view: 'live', date: '', f: { q: '', type: '', place: '', open: false }, place: '', planTab: 'guests', busy: 0, drv: null, share: false };
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+/* Phones often wipe or block storage inside the Google page, so the sign-in also lives in the address bar:
+   the home-screen icon and any reopened tab carry it and open straight in. */
+function keepUrl(q) { try { google.script.history.replace(null, q, ''); } catch (e) {} try { window.top.postMessage({ bothraApp: 1, q: q }, 'https:' + String.fromCharCode(47, 47) + 'tanmaybothra-maitri.github.io'); } catch (e) {} }
+const store = { get(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+/* ---------- formatting ---------- */
+const hm = ms => ms ? new Date(ms).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ }) : '';
+const today = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+const dayLabel = d => new Date(d + 'T12:00:00+05:30').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', timeZone: TZ });
+const mins = ms => Math.round(ms / 60000);
+const inMin = ms => { const m = mins(ms - Date.now()); return m > 0 ? 'in ' + (m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + (m % 60) + ' min') : m === 0 ? 'now' : Math.abs(m) + ' min ago'; };
+const ago = ms => { const m = mins(Date.now() - ms); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : Math.floor(m / 60) + ' h ago'; };
+const digits = p => { let d = String(p || '').replace(/\D/g, ''); if (d.length === 10) d = '91' + d; return d; };
+const WEB = 'https:' + String.fromCharCode(47, 47);
+const mapAt = (lat, lng) => WEB + 'www.google.com/maps/search/?api=1&query=' + lat + ',' + lng;
+const waLink = (p, msg) => WEB + 'wa.me/' + digits(p) + (msg ? '?text=' + encodeURIComponent(msg) : '');
+const okPhone = p => digits(p).length >= 11;
+const icons = (p, msg) => `<span class="icons"><a class="ic call ${okPhone(p) ? '' : 'off'}" href="tel:+${digits(p)}" title="Call">📞</a><a class="ic wa ${okPhone(p) ? '' : 'off'}" target="_blank" href="${waLink(p, msg)}" title="WhatsApp">💬</a></span>`;
+const bi = (h, e) => `<span class="bi"><b>${h}</b><small>${e}</small></span>`;
+const tx = (h, e) => DRIVER ? bi(h, e) : e;
+const tt = (h, e) => DRIVER ? h + ' · ' + e : e;
+function toast(m, undoFn) {
+  $$('.toast').forEach(t => t.remove());
+  const t = document.createElement('div'); t.className = 'toast';
+  t.innerHTML = esc(m) + (undoFn ? ' <button class="tundo">' + tt('वापस', 'Undo') + '</button>' : '');
+  document.body.appendChild(t);
+  if (undoFn) t.querySelector('.tundo').onclick = () => { t.remove(); undoFn(); };
+  setTimeout(() => t.remove(), undoFn ? 9000 : 2400);
+}
+function loading(on) { S.busy += on ? 1 : -1; let l = $('.loading'); if (S.busy > 0 && !l) { l = document.createElement('div'); l.className = 'loading'; document.body.appendChild(l); } if (S.busy <= 0 && l) { l.remove(); S.busy = 0; } }
+
+function data() { return DRIVER ? S.drv : S.base; }
+function pname(c) { const p = (data().places || {})[c]; return p ? p.name : c; }
+function plink(c) { const p = (data().places || {})[c]; return p ? p.map : WEB + 'www.google.com/maps/search/?api=1&query=' + encodeURIComponent(c + ' Ahmedabad'); }
+function drive(a, b) { const d = data().drive || {}; return a === b ? 0 : (d[a + '|' + b] || 40); }
+function statusMap() { return DRIVER ? S.drv.status : S.live.status; }
+function carInfo(date, car) { return (data().cars || []).find(c => c.date === date && c.car === car) || { car: car, date: date }; }
+
+/* ---------- trip state ---------- */
+const FLOW = ['On the way', 'At pickup', 'Guests in car', 'Dropped'];
+const STEPS = ['At pickup', 'Guests in car', 'Dropped'];
+const NEXT_LABEL = { 'On the way': 'I’m on the way', 'At pickup': 'Reached pickup', 'Guests in car': 'Guests are in the car', 'Dropped': 'Dropped everyone' };
+const DESK_LABEL = { 'On the way': 'Mark on the way', 'At pickup': 'Mark at pickup', 'Guests in car': 'Mark guests in car', 'Dropped': 'Mark dropped' };
+const DRV_HI = { 'At pickup': ['पहुँच गया', 'I have reached'], 'Guests in car': ['मेहमान बैठ गए', 'Guests are in'], 'Dropped': ['छोड़ दिया', 'Dropped'] };
+const POST_HI = { 'At pickup': ['गाड़ी आ गई', 'Car is here'], 'Guests in car': ['गाड़ी निकल गई', 'Car has left'], 'Dropped': ['गाड़ी पहुँच गई', 'Car arrived'] };
+const PILL_HI = { 'Not started': 'अभी नहीं', 'On the way': 'रास्ते में', 'At pickup': 'पहुँच गई', 'Late': 'लेट', 'Problem': 'दिक्कत', 'Cancelled': 'कैंसल' };
+function st(d) {
+  const s = statusMap()[d.key] || null, now = Date.now(), x = { s, st: s ? s.status : '', pill: 'Not started', cls: '', eta: '', late: false, done: false, step: 0, prob: false };
+  if (x.st === 'Dropped') return Object.assign(x, { pill: 'Done ' + hm(s.at), cls: 'p-done', done: true, step: 4, eta: 'Dropped at ' + pname(d.to) + ' at ' + hm(s.at) + (s.pax != null ? ' · ' + s.pax + ' people' : '') });
+  if (x.st === 'Cancelled') return Object.assign(x, { pill: 'Cancelled', cls: 'p-bad', done: true, eta: s.note || '' });
+  if (x.st === 'Problem') return Object.assign(x, { pill: 'Problem', cls: 'p-bad', prob: true, late: true, eta: '⚠ ' + (s.note || 'Problem reported') + ' · ' + ago(s.at) });
+  if (x.st === 'Guests in car') { const eta = s.at + drive(d.from, d.to) * 60000; return Object.assign(x, { pill: (s.pax != null ? s.pax : d.pax) + ' in car', cls: 'p-in', step: 3, eta: 'Reaching ' + pname(d.to) + ' ~' + hm(eta) + ' (' + inMin(eta) + ')', etaMs: eta, late: now > eta + 20 * 60000 }); }
+  if (x.st === 'At pickup') return Object.assign(x, { pill: 'At pickup', cls: 'p-pick', step: 2, eta: 'Waiting at ' + pname(d.from) + ' since ' + hm(s.at), late: now > d.leave + 30 * 60000 });
+  if (x.st === 'On the way') return Object.assign(x, { pill: 'On the way', cls: 'p-way', step: 1, eta: 'Due at ' + pname(d.from) + ' ' + hm(d.report) + ' (' + inMin(d.report) + ')', late: now > d.report + 15 * 60000 });
+  x.late = now > d.report + 10 * 60000 && now < d.busy + 6 * 3600000;
+  x.eta = x.late ? 'Should have been at ' + pname(d.from) + ' at ' + hm(d.report) + ' - not started' : 'Car at ' + pname(d.from) + ' ' + hm(d.report) + ' (' + inMin(d.report) + ') · reaches ' + hm(d.reach);
+  if (x.late) Object.assign(x, { pill: 'Late', cls: 'p-bad' });
+  return x;
+}
+const nextOf = cur => { const i = FLOW.indexOf(cur); return i < 0 ? FLOW[0] : FLOW[i + 1] || ''; };
+const nextStep = cur => { if (cur === 'Dropped' || cur === 'Cancelled') return ''; const i = STEPS.indexOf(cur); return i < 0 ? STEPS[0] : STEPS[i + 1] || ''; };
+const pillHi = i => { const k = /^Done/.test(i.pill) ? '' : /in car$/.test(i.pill) ? 'गाड़ी में' : PILL_HI[i.pill] || ''; return (k ? k + ' · ' : '') + i.pill; };
+
+/* ---------- bottom sheets ---------- */
+function sheet(html, wireFn) {
+  closeSheet();
+  const o = document.createElement('div'); o.className = 'ov';
+  o.innerHTML = `<div class="sheet"><div class="grab"></div>${html}</div>`;
+  o.onclick = e => { if (e.target === o) closeSheet(); };
+  document.body.appendChild(o); $$('[data-close]').forEach(b => b.onclick = closeSheet); wireFn && wireFn();
+}
+function closeSheet() { const o = $('.ov'); if (o) o.remove(); }
+function askPax(d, done) {
+  let n = d.pax || 1;
+  sheet(`<h3>${tt('कितने लोग बैठे?', 'How many got in?')}</h3><div class="meta">${esc(d.car)} · ${esc(pname(d.from))} → ${esc(pname(d.to))} · planned ${d.pax}</div>
+    <div class="stepper"><button id="mi">−</button><b id="nv">${n}</b><button id="pl">+</button></div>
+    <button class="btn pri huge" id="ok">${tx('ठीक है', 'Confirm')}</button><button class="btn ghost" style="width:100%;margin-top:6px" data-close>Cancel</button>`, () => {
+    $('#mi').onclick = () => { n = Math.max(0, n - 1); $('#nv').textContent = n; };
+    $('#pl').onclick = () => { n = n + 1; $('#nv').textContent = n; };
+    $('#ok').onclick = () => { closeSheet(); done(n); };
+  });
+}
+function askProblem(d, done) {
+  const opts = ['ट्रेन/फ्लाइट लेट · Train/flight late', 'मेहमान नहीं मिले · Guest not found', 'ट्रैफिक · Traffic', 'गाड़ी खराब · Car problem', 'जगह कम · Not enough seats', 'प्लान बदला · Plan changed'];
+  sheet(`<h3>${tt('क्या दिक्कत है?', 'What’s the problem?')}</h3><div class="meta">${esc(d.car)} · ${hm(d.report)} ${esc(pname(d.from))} → ${esc(pname(d.to))}</div>
+    <div class="chips">${opts.map(o => `<span>${DRIVER ? o : o.split(' · ').pop()}</span>`).join('')}</div><textarea id="nt" rows="2" placeholder="${DRIVER ? 'और कुछ / ' : ''}Anything else (optional)"></textarea>
+    <button class="btn red huge" id="ok">${tx('डेस्क को बताएँ', 'Tell the travel desk')}</button><button class="btn ghost" style="width:100%;margin-top:6px" data-close>Cancel</button>`, () => {
+    $$('.chips span').forEach(c => c.onclick = () => c.classList.toggle('on'));
+    $('#ok').onclick = () => { const t = $$('.chips span.on').map(c => c.textContent.split(' · ').pop()).concat($('#nt').value.trim() ? [$('#nt').value.trim()] : []).join(' · '); closeSheet(); done(t || 'Problem'); };
+  });
+}
+/* sends a status; the toast offers undo back to the previous status */
+function sendStep(d, status, send) {
+  const prev = statusMap()[d.key] ? Object.assign({}, statusMap()[d.key]) : null;
+  const undo = () => prev ? send(d.key, prev.status, prev.pax, prev.note) : send(d.key, 'Reset', null, '');
+  const go = (pax, note) => send(d.key, status, pax, note || '', undo);
+  if (status === 'Guests in car' && d.event) return askPax(d, n => go(n));
+  if (status === 'Guests in car') return go(d.pax);
+  if (status === 'Problem') return askProblem(d, note => go(null, note));
+  go(null);
+}
+function moreMenu(d, i, send) {
+  sheet(`<h3>${esc(d.car)} · ${hm(d.report)}</h3><div class="meta">${esc(pname(d.from))} → ${esc(pname(d.to))}</div><div class="menu">
+    ${!i.done ? '<button class="btn" id="m_prob">⚠️ Report a problem</button>' : ''}
+    ${i.st ? '<button class="btn" id="m_undo">↩️ Clear status</button>' : ''}
+    ${!DRIVER && !i.done ? '<button class="btn" id="m_cancel">🚫 Trip cancelled</button>' : ''}
+    ${!DRIVER ? FLOW.filter(f => f !== nextOf(i.st)).map(f => `<button class="btn" data-set="${f}">Set: ${f}</button>`).join('') : ''}
+    <a class="btn" target="_blank" href="${plink(d.from)}">🧭 Map: ${esc(pname(d.from))}</a><a class="btn" target="_blank" href="${plink(d.to)}">🧭 Map: ${esc(pname(d.to))}</a>
+    <button class="btn ghost" data-close>Close</button></div>`, () => {
+    const pb = $('#m_prob'); if (pb) pb.onclick = () => sendStep(d, 'Problem', send);
+    const ub = $('#m_undo'); if (ub) ub.onclick = () => { closeSheet(); send(d.key, 'Reset', null, ''); };
+    const cb = $('#m_cancel'); if (cb) cb.onclick = () => { closeSheet(); send(d.key, 'Cancelled', null, 'Cancelled by desk'); };
+    $$('[data-set]').forEach(b => b.onclick = () => { closeSheet(); sendStep(d, b.dataset.set, send); });
+  });
+}
+
+function wireTrips(list, send) {
+  const find = k => list.find(x => x.key === k);
+  $$('[data-go]').forEach(b => b.onclick = () => sendStep(find(b.dataset.go), b.dataset.st, send));
+  $$('[data-prob]').forEach(b => b.onclick = () => sendStep(find(b.dataset.prob), 'Problem', send));
+  $$('[data-more]').forEach(b => b.onclick = () => { const d = find(b.dataset.more); moreMenu(d, st(d), send); });
+}
+
+/* ======================= TRAVEL DESK ======================= */
+function call(fn, args, ok, quiet) {
+  if (!quiet) loading(true);
+  google.script.run.withSuccessHandler(r => { if (!quiet) loading(false); ok(r); })
+    .withFailureHandler(e => { if (!quiet) loading(false); unlockBtns(); if (/PIN/.test(e.message)) { S.pin = ''; store.set('la_pin', ''); renderLogin(e.message); } else if (!quiet) toast('⚠️ ' + e.message); })[fn].apply(null, args);
+}
+function apply(r) { if (r.base) S.base = r.base; if (r.live) S.live = r.live; if (!S.date) S.date = pickDate(); saveCache(r); render(); }
+/* last data kept on the phone so the app opens instantly; fresh data replaces it a moment later */
+function saveCache(r) { try { if (r.base) localStorage.setItem('la_base', JSON.stringify(r.base)); if (r.live) localStorage.setItem('la_live', JSON.stringify(r.live)); } catch (e) {} }
+function readCache() { try { const b = JSON.parse(localStorage.getItem('la_base') || 'null'), l = JSON.parse(localStorage.getItem('la_live') || 'null'); return b ? { base: b, live: l || { status: {}, where: {}, now: Date.now() } } : null; } catch (e) { return null; } }
+function dates() { const s = {}; S.base.duties.forEach(d => s[d.date] = 1); S.base.cars.forEach(c => s[c.date] = 1); return Object.keys(s).sort(); }
+function opDay(duties) { const now = Date.now(), t = today(), y = new Date(now - 86400000).toLocaleDateString('en-CA', { timeZone: TZ }); const h = Number(new Date(now).toLocaleTimeString('en-GB', { hour: '2-digit', hour12: false, timeZone: TZ })); return h < 4 && duties.some(d => d.date === y && d.busy > now - 30 * 60000) ? y : t; }
+function pickDate() { const ds = dates(), t = opDay(S.base.duties); return ds.indexOf(t) >= 0 ? t : (ds.find(d => d > t) || ds[ds.length - 1] || t); }
+
+function renderLogin(msg) {
+  $('#app').innerHTML = `<div class="login"><div class="logo">🚗</div><h2>Travel desk</h2><div class="meta">Aman & Sandhya · Griha Pravesh</div>
+    <input id="who" placeholder="Your name" value="${esc(store.get('la_who'))}" autocomplete="name"><input id="pin" type="password" inputmode="numeric" placeholder="PIN" autocomplete="off">
+    <button class="btn pri big" style="width:100%;margin-top:8px" id="go">Open</button><p style="color:var(--red);font-size:13px">${esc(msg || '')}</p></div>`;
+  const go = () => {
+    const pin = $('#pin').value.trim(); S.who = $('#who').value.trim(); if (!S.who) return toast('Please enter your name'); store.set('la_who', S.who); if (!lockBtn($('#go'))) return;
+    call('logiApp_session', [pin, S.who], tok => { S.pin = 'S:' + tok; store.set('la_pin', S.pin); keepUrl({ app: 'logistics', s: tok }); call('logiApp_load', [S.pin], r => { saveCache(r); afterLogin(r); }); });
+  };
+  $('#go').onclick = go; $('#pin').onkeydown = e => { if (e.key === 'Enter') go(); };
+}
+let pollT = null;
+function startPoll() { clearInterval(pollT); pollT = setInterval(() => { if (document.hidden || S.busy || $('.ov') || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; call('logiApp_poll', [S.pin, S.base && S.base.version], apply, true); }, 30000); }
+
+/* ---------- Cars ---------- */
+const CAR_FIELDS = [['reg', 'Car number', 'GJ 01 AB 1234'], ['model', 'Model', 'Ertiga'], ['driver', 'Driver name', ''], ['phone', 'Driver phone', '98xxxxxxxx'], ['seats', 'Seats', '6'], ['lug', 'Seats with luggage', '4'], ['source', 'Own / hired', 'HIRED'], ['owner', 'Owner / vendor', ''], ['ownerPhone', 'Vendor phone', ''], ['rate', 'Rate', ''], ['notes', 'Notes', '']];
+function viewCars() {
+  const ds = S.base.duties.filter(d => d.date === S.date);
+  const cars = S.base.cars.filter(c => c.date === S.date).map(c => Object.assign({}, c, { trips: ds.filter(d => d.car === c.car).sort((a, b) => a.report - b.report) }))
+    .sort((a, b) => (b.trips.length > 0) - (a.trips.length > 0) || a.car.localeCompare(b.car, undefined, { numeric: true }));
+  const used = cars.filter(c => c.trips.length), missing = used.filter(c => !c.driver || !okPhone(c.phone)).length;
+  const link = c => c.code && S.base.appUrl ? { driver: c.driver, phone: c.phone, url: S.base.appUrl + '?app=driver&d=' + c.code } : null;
+  const html = `<div class="bar"><button class="btn pri grow" id="add">＋ Add car</button></div>
+    ${missing ? `<div class="clbar" style="margin:0 0 8px">${missing} working car${missing > 1 ? 's' : ''} without driver / phone</div>` : ''}
+    <div class="card np">${cars.map(c => { const l = link(c), home = /HOME/i.test(c.source || '');
+      return `<div class="fr"><div class="cn sm ${home ? 'home' : ''}">${esc(c.car.replace('Car ', ''))}</div>
+        <div class="mid"><div class="t2">${c.driver ? esc(c.driver) : '<span style="color:var(--red)">No driver</span>'} <span class="mut" style="font-weight:500">${esc(c.reg || '')}</span></div>
+          <div class="s">${c.trips.length ? c.trips.length + ' trips · ' + hm(c.trips[0].report) + '–' + hm(c.trips[c.trips.length - 1].busy) : 'no trips'}${home ? ' · family' : ''}</div></div>
+        ${okPhone(c.phone) ? `<a class="ic call" href="tel:+${digits(c.phone)}">📞</a>` : ''}
+        ${l && c.trips.length ? `<a class="ic wa" target="_blank" href="${waLink(c.phone, dayPlanText(l, S.date))}" title="Send day plan">💬</a>` : ''}
+        <button class="ic" data-edit="${esc(c.car)}" title="Edit">✎</button></div>`; }).join('') || '<div class="empty">No cars this day</div>'}</div>`;
+  return { html, wire() {
+    $('#add').onclick = () => carForm({ date: S.date, car: '' });
+    $$('[data-edit]').forEach(b => b.onclick = () => carForm(Object.assign({}, cars.find(c => c.car === b.dataset.edit))));
+  } };
+}
+function carForm(c) {
+  const isNew = !c.car;
+  sheet(`<h3>${isNew ? 'Add a car' : esc(c.car)}</h3><div class="meta">${dayLabel(c.date)}${isNew ? ' · use the next free car number' : ''}</div>
+    ${isNew ? `<label>Car number in the plan</label><select id="f_car">${Array.from({ length: 30 }, (x, k) => 'Car ' + (k + 1)).filter(n => !S.base.cars.some(y => y.date === c.date && y.car === n)).map(n => `<option>${n}</option>`).join('')}</select>` : ''}
+    <div class="grid2">${CAR_FIELDS.map(f => `<div><label>${f[1]}</label><input id="f_${f[0]}" placeholder="${f[2]}" value="${esc(c[f[0]] == null ? '' : c[f[0]])}" ${['seats', 'lug'].indexOf(f[0]) >= 0 ? 'inputmode="numeric"' : ''} ${/hone/.test(f[0]) ? 'inputmode="tel"' : ''}></div>`).join('')}</div>
+    <button class="btn pri big" style="width:100%;margin-top:14px" id="save">Save</button><button class="btn ghost" style="width:100%;margin-top:6px" data-close>Cancel</button>`, () => {
+    $('#save').onclick = () => {
+      const o = { date: c.date, car: isNew ? $('#f_car').value : c.car };
+      CAR_FIELDS.forEach(f => o[f[0]] = $('#f_' + f[0]).value.trim());
+      if (o.phone && digits(o.phone).length < 11) return toast('Driver phone looks wrong');
+      if (o.seats) o.seats = Number(o.seats); if (o.lug) o.lug = Number(o.lug);
+      if (!lockBtn($('#save'))) return;
+      call('logiApp_saveCar', [S.pin, o], r => { closeSheet(); apply(r); toast('✓ ' + o.car + ' saved'); });
+    };
+  });
+}
+
+/* ---------- Plan ---------- */
+function carList(date) {
+  const s = {}; S.base.cars.filter(c => c.date === date).forEach(c => s[c.car] = c);
+  for (let i = 1; i <= 20; i++) if (!s['Car ' + i]) s['Car ' + i] = null;
+  return Object.keys(s).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).map(k => ({ car: k, info: s[k] }));
+}
+function viewPlan() {
+  const tab = S.planTab, opts = carList(S.date);
+  const optHtml = sel => `<option value="">No car</option>` + opts.map(o => `<option value="${o.car}" ${o.car === sel ? 'selected' : ''}>${o.car}${o.info && (o.info.reg || o.info.driver) ? ' · ' + esc(o.info.reg || o.info.driver) : ''}</option>`).join('');
+  let html = `<div class="seg"><button data-tab="guests" class="${tab === 'guests' ? 'on' : ''}">Guest pickups & drops</button><button data-tab="waves" class="${tab === 'waves' ? 'on' : ''}">Event trips</button></div>`;
+  if (tab === 'guests') {
+    const legs = S.base.legs.filter(l => l.date === S.date), groups = {};
+    legs.forEach(l => (groups[l.journey] = groups[l.journey] || []).push(l));
+    const keys = Object.keys(groups).sort((a, b) => (groups[a][0].report || 0) - (groups[b][0].report || 0));
+    const noCar = legs.filter(l => !l.car).length;
+    html += `<p class="hint">Pick a car for each guest. Guests on the same train going to the same place can share a car. ${noCar ? `<span class="warn">${noCar} without a car</span>` : ''}</p>` +
+      (keys.map((k, gi) => { const g = groups[k], f = g[0], bad = g.find(x => /CLASH|OVER|NO CAR/.test(x.status));
+        return `<div class="card"><div class="top"><div><div class="tm" style="font-size:18px">${hm(f.report)}</div><div class="tml">${esc(f.leg.toLowerCase())}</div></div>${bad ? `<span class="pill p-bad">${esc(bad.status.replace(/ with .*/, ''))}</span>` : '<span class="pill p-done">OK</span>'}</div>
+          <div class="route">${esc(pname(f.from))} <span class="arrow">→</span> ${esc(pname(f.to))}</div><div class="meta">${esc(f.train)}${f.time ? ' · ' + esc(f.time) : ''} · 👥 ${g.reduce((a, x) => a + x.pax, 0)}</div>
+          ${g.length > 1 ? `<div class="row"><div class="l"><b>Everyone</b><small>sets all below</small></div><select data-all="${gi}">${optHtml('')}</select></div>` : ''}
+          ${g.map((l, li) => `<div class="row"><div class="l">${esc(l.name)}<small>${esc(l.group)}</small></div><select data-leg="${gi}:${li}" data-was="${esc(l.car)}">${optHtml(l.car)}</select></div>`).join('')}
+          <div class="acts"><button class="btn pri grow" data-savej="${gi}" disabled style="opacity:.5">Save</button></div></div>`; }).join('') || '<div class="empty"><b>🗺️</b>No guest trips on this day.</div>');
+    return { html, wire() {
+      planTabs();
+      const dirty = gi => { const b = $(`[data-savej="${gi}"]`), ch = $$(`[data-leg^="${gi}:"]`).some(s => s.value !== s.dataset.was); b.disabled = !ch; b.style.opacity = ch ? 1 : .5; };
+      $$('[data-leg]').forEach(s => s.onchange = () => dirty(s.dataset.leg.split(':')[0]));
+      $$('[data-all]').forEach(s => s.onchange = () => { if (s.value) $$(`[data-leg^="${s.dataset.all}:"]`).forEach(x => x.value = s.value); dirty(s.dataset.all); });
+      $$('[data-savej]').forEach(b => b.onclick = () => {
+        const g = groups[keys[Number(b.dataset.savej)]];
+        const items = g.map((l, li) => ({ id: l.id, name: l.name, leg: l.leg, car: $(`[data-leg="${b.dataset.savej}:${li}"]`).value })).filter((it, li) => it.car !== g[li].car);
+        call('logiApp_mapGuests', [S.pin, items], r => { apply(r); toast('✓ Saved - clashes are re-checked'); });
+      });
+    } };
+  }
+  const waves = S.base.waves.filter(w => w.date === S.date).sort((a, b) => (a.report || 0) - (b.report || 0));
+  html += `<p class="hint">Trips to and from events, by head-count. Tap a car once to add it <span class="legend"><span><i style="background:var(--pri)"></i>going</span><span><i style="background:var(--amb)"></i>stays at venue as standby</span></span> tap again for standby, again to remove.</p>` +
+    (waves.map((w, wi) => { const on = w.cars.split(',').map(s => s.trim()).filter(Boolean), sb = w.standby.split(',').map(s => s.trim()).filter(Boolean);
+      return `<div class="card"><div class="top"><div><div class="tm" style="font-size:18px">${esc(w.leave)}</div><div class="tml">${esc((S.base.events[w.event] || {}).name || w.event)}</div></div><span class="pill ${on.length < w.need ? 'p-bad' : 'p-done'}" data-need="${wi}">${on.length}/${w.need} cars</span></div>
+        <div class="route">${esc(pname(w.from))} <span class="arrow">→</span> ${esc(pname(w.to))}</div><div class="meta">👥 ${w.pax} people · ${esc(w.note)}</div>
+        <div class="chips">${opts.map(o => `<span data-wc="${wi}" data-car="${o.car}" class="${sb.indexOf(o.car) >= 0 ? 'sb' : on.indexOf(o.car) >= 0 ? 'on' : ''}">${o.car}</span>`).join('')}</div>
+        <div class="acts"><button class="btn pri grow" data-savew="${wi}">Save</button></div></div>`; }).join('') || '<div class="empty"><b>🎉</b>No event trips on this day.</div>');
+  return { html, wire() {
+    planTabs();
+    $$('[data-wc]').forEach(s => s.onclick = () => { s.className = s.className === '' ? 'on' : s.className === 'on' ? 'sb' : ''; const wi = s.dataset.wc, n = $$(`[data-wc="${wi}"]`).filter(x => x.className).length, need = waves[Number(wi)].need, p = $(`[data-need="${wi}"]`); p.textContent = n + '/' + need + ' cars'; p.className = 'pill ' + (n < need ? 'p-bad' : 'p-done'); });
+    $$('[data-savew]').forEach(b => b.onclick = () => {
+      const wi = b.dataset.savew, cars = [], sb = [];
+      $$(`[data-wc="${wi}"]`).forEach(s => { if (s.className) cars.push(s.dataset.car); if (s.className === 'sb') sb.push(s.dataset.car); });
+      call('logiApp_mapWave', [S.pin, waves[Number(wi)].id, cars, sb], r => { apply(r); toast('✓ Saved'); });
+    });
+  } };
+}
+function planTabs() { $$('[data-tab]').forEach(b => b.onclick = () => { S.planTab = b.dataset.tab; render(); }); }
+
+/* ---------- Team ---------- */
+function viewTeam() {
+  const pls = Object.keys(S.base.places);
+  return { html: `<div class="bar"><button class="btn pri grow" id="addp">＋ Add person</button><button class="btn grow" id="tlinks">📲 Send app links</button></div>
+    ${['Travel desk', 'Coordinator', 'Group POC', 'Family'].map(role => { const ppl = S.base.team.filter(t => (t.role || 'Coordinator') === role); return ppl.length ? `<div class="sec">${role} <span class="n">${ppl.length}</span></div><div class="card">${ppl.map(t => `<div class="row"><div class="l">${esc(t.name)}<small>${t.place ? '📍 ' + esc(pname(t.place)) : ''}${t.note ? ' · ' + esc(t.note) : ''}</small></div><span class="icons">${icons(t.phone).replace(/^<span class="icons">|<\/span>$/g, '')}<button class="ic" data-ed="${t.row}">✏️</button></span></div>`).join('')}</div>` : ''; }).join('')}
+    ${S.base.team.length ? '' : '<div class="empty"><b>👥</b>No one added yet.</div>'}`,
+    wire() {
+      const form = t => sheet(`<h3>${t ? 'Edit' : 'Add a person'}</h3>
+        <label>Name</label><input id="t_n" value="${esc(t ? t.name : '')}"><label>Phone</label><input id="t_p" inputmode="tel" value="${esc(t ? t.phone : '')}">
+        <label>Role</label><select id="t_r">${['Travel desk', 'Coordinator', 'Group POC', 'Family'].map(r => `<option ${t && t.role === r ? 'selected' : ''}>${r}</option>`).join('')}</select>
+        <label>Place (where they will be)</label><select id="t_l"><option value="">Anywhere</option>${pls.map(p => `<option value="${p}" ${t && t.place === p ? 'selected' : ''}>${esc(pname(p))}</option>`).join('')}</select>
+        <label>Note</label><input id="t_o" value="${esc(t ? t.note : '')}">
+        <button class="btn pri big" style="width:100%;margin-top:14px" id="ok">Save</button>${t ? '<button class="btn" style="width:100%;margin-top:6px;color:var(--red)" id="del">Remove</button>' : ''}<button class="btn ghost" style="width:100%;margin-top:6px" data-close>Cancel</button>`, () => {
+        const saveAll = rows => lockBtn($('#ok')) && call('logiApp_saveTeam', [S.pin, rows], r => { closeSheet(); apply(r); toast('✓ Team saved'); });
+        $('#ok').onclick = () => { const p = { name: $('#t_n').value.trim(), phone: $('#t_p').value.trim(), role: $('#t_r').value, place: $('#t_l').value, note: $('#t_o').value.trim() };
+          if (!p.name) return toast('Name please'); const rows = S.base.team.filter(x => !t || x.row !== t.row).concat([p]); saveAll(rows); };
+        const del = $('#del'); if (del) del.onclick = () => saveAll(S.base.team.filter(x => x.row !== t.row));
+      });
+      $('#addp').onclick = () => form(null);
+      $('#tlinks').onclick = teamLinksSheet;
+      $$('[data-ed]').forEach(b => b.onclick = () => form(S.base.team.find(t => String(t.row) === b.dataset.ed)));
+    } };
+}
+
+/* ======================= COORDINATOR ======================= */
+/* everything below is built from the sheet (SETUP places, CARS, TEAM) - new places, cars and people appear by themselves */
+const SHORT = { HOTEL: 'Hotel', VENUE: 'Venue', ADI: 'Kalupur', SBIB: 'Sabarmati', AIR: 'Airport' };
+const sp = c => SHORT[c] || String(pname(c) || c).replace(/\s*\(.*?\)\s*/g, ' ').trim().split(/\s+/).slice(0, 3).join(' ');
+const isTransit = c => /station|airport/i.test(((S.base && S.base.places[c]) || {}).type || '') || ['ADI', 'SBIB', 'AIR'].indexOf(c) >= 0;
+function locs() {
+  if (S.locsV === S.base.version && S.locsC) return S.locsC;
+  const used = new Set(); S.base.duties.forEach(d => { used.add(d.from); used.add(d.to); }); (S.base.legs || []).forEach(l => { used.add(l.from); used.add(l.to); });
+  used.delete('');
+  const tr = [...used].filter(isTransit), rest = [...used].filter(c => !isTransit(c));
+  const rank = c => (['HOTEL', 'VENUE'].indexOf(c) + 1) || 9;
+  S.locsC = [['ALL', 'All places', null]].concat(rest.sort((a, b) => rank(a) - rank(b) || sp(a).localeCompare(sp(b))).map(c => [c, sp(c), [c]]), tr.length ? [['STATION', 'Station / Airport', tr]] : []);
+  S.locsV = S.base.version;
+  return S.locsC;
+}
+const locOf = id => locs().find(l => l[0] === id) || locs()[0];
+function nextOfCar(d) { return S.base.duties.filter(o => o.date === d.date && o.car === d.car && o.report > d.report && live2(o)).sort((a, b) => a.report - b.report)[0] || null; }
+function famCars() { const f = {}; S.base.cars.filter(c => /HOME/i.test(c.source || '')).forEach(c => { f[c.car] = (c.owner || c.driver || 'Family').split(' ')[0]; }); return f; }
+const inLoc = (p, id) => { const l = locOf(id); return !l[2] || l[2].indexOf(p) >= 0; };
+const dur = ms => { const m = Math.max(0, mins(ms)); return m < 60 ? m + 'm' : Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : ''); };
+const isHome = (date, car) => /HOME/i.test(carInfo(date, car).source || '');
+const homeName = (date, car) => { const o = carInfo(date, car).owner || carInfo(date, car).driver || ''; return o.split(' ')[0] || 'Family'; };
+const ownLeft = (date, from, to) => Object.keys(statusMap()).filter(k => k.indexOf('OWN|' + date + '|' + from + '|' + to + '|') === 0).reduce((a, k) => a + (Number(statusMap()[k].pax) || 0), 0);
+const stale = d => { const i = st(d); if (i.done) return false; const now = Date.now(); if (i.st === 'Guests in car') return now > (i.etaMs || d.reach) + 60 * 60000; return !i.st && now > d.busy + 45 * 60000; };
+const isGone = d => { const s = statusMap()[d.key]; return !!s && (s.status === 'Guests in car' || s.status === 'Dropped'); };
+const paxOf = d => { const s = statusMap()[d.key]; return s && s.pax != null ? s.pax : d.pax; };
+const etaOf = d => st(d).etaMs || d.reach;
+function schedTime(d) {
+  const g = d.guests.find(x => /(arr|dep) \d\d:\d\d/.test(x.trip));
+  if (!g) return '';
+  const m = /(arr|dep) (\d\d:\d\d)/.exec(g.trip);
+  return (d.from === 'AIR' || d.to === 'AIR' ? '✈ ' : '🚆 ') + m[2];
+}
+
+function afterLogin(r) {
+  S.base = r.base; S.live = r.live; S.date = pickDate(); S.loc = store.get('la_loc') || 'ALL'; S.tab = 'out'; S.q = ''; S.open = {}; S.admin = null;
+  startPoll(); render();
+}
+function render() {
+  if (DRIVER) return renderDriver();
+  if (!S.base) return;
+  return S.admin ? renderAdmin() : renderCoord();
+}
+/* status taps: shown at once, saved in the background, one at a time per trip (slow network safe) */
+const coordSend = (k, s, p, n, undo) => {
+  S.inf = S.inf || {};
+  if (S.inf[k]) return toast('Saving… one moment');
+  S.inf[k] = 1;
+  const prev = S.live.status[k];
+  if (s === 'Reset') delete S.live.status[k]; else S.live.status[k] = { status: s, pax: p == null ? null : Number(p), at: Date.now(), by: 'Desk: ' + S.who, note: n || '' };
+  render();
+  toast(s === 'Reset' ? 'Cleared' : s === 'Problem' ? 'Desk informed' : s === 'Cancelled' ? 'Trip cancelled' : '✓ ' + ({ 'At pickup': 'Arrived', 'Guests in car': 'Left', 'Dropped': 'Reached' }[s] || s), undo);
+  google.script.run.withSuccessHandler(live => { delete S.inf[k]; S.live = live; render(); })
+    .withFailureHandler(e => { delete S.inf[k]; if (prev) S.live.status[k] = prev; else delete S.live.status[k]; render(); toast('⚠️ Not saved (' + e.message + ') - tap again'); })
+    .logiApp_status(S.pin, S.who + ' @ ' + locOf(S.loc)[1], k, s, p, n);
+};
+/* one press only for save buttons */
+function lockBtn(b) { if (!b || b.disabled) return false; b.disabled = true; b.dataset.t = b.textContent; b.textContent = 'Saving…'; b.classList.add('busyb'); return true; }
+function unlockBtns() { $$('button[disabled]').forEach(b => { b.disabled = false; b.classList.remove('busyb'); if (b.dataset.t) b.textContent = b.dataset.t; }); }
+
+/* next action for a trip. dir: 'in' = coming to this place */
+function act(d, dir) {
+  const i = st(d);
+  if (i.done) return null;
+  if (dir === 'in' || i.st === 'Guests in car') return ['Dropped', 'Arrived'];
+  if (i.st === 'At pickup') return ['Guests in car', 'Left'];
+  return ['At pickup', 'Arrived'];
+}
+
+/* free windows: where each car waits between trips, and until when */
+function freeWins(date) {
+  const by = {};
+  S.base.duties.filter(d => d.date === date && !isHome(date, d.car)).forEach(d => (by[d.car] = by[d.car] || []).push(d));
+  const out = [];
+  Object.keys(by).forEach(car => {
+    const L = by[car].sort((a, b) => a.report - b.report);
+    L.forEach((d, k) => {
+      const n = L[k + 1], s = statusMap()[d.key];
+      if (s && s.status === 'Cancelled') return;
+      let at = d.to, from = d.reach;
+      if (n && n.from !== d.to && d.event && n.from === d.from) { at = d.from; from = d.busy; }
+      if (s && s.status === 'Dropped' && at === d.to) from = s.at;
+      const till = n ? n.report - (at === n.from ? 0 : (drive(at, n.from) + 10) * 60000) : null;
+      if (till !== null && till - from < 15 * 60000) return;
+      out.push({ car, at, from, till, next: n || null });
+    });
+  });
+  return out;
+}
+function freeNow(date) {
+  const now = Date.now(), isToday = date === opDay(S.base.duties);
+  return freeWins(date).filter(w => isToday ? w.from <= now && (w.till === null || w.till > now) : true);
+}
+/* same model as the sheet: after a trip the car is free at reach + drive to the next pickup (event trips already carry a buffer) */
+function live2(o) { const x = statusMap()[o.key]; return !(x && (x.status === 'Cancelled' || x.status === 'Dropped')); }
+function freeAt(o, d) { const t = o.to === d.from ? 0 : drive(o.to, d.from) + 10 - (o.event ? 10 : 0); return Math.max(o.reach + t * 60000, /standby/.test(o.type) ? o.busy : 0); }
+function clashPair(a, b) { const p = a.report <= b.report ? a : b, n = p === a ? b : a; return freeAt(p, n) > n.report + 60000; }
+function conflicts(car, d) { return S.base.duties.filter(o => o.date === d.date && o.car === car && o.key !== d.key && live2(o) && clashPair(o, d)); }
+function canDo(car, d) { return isHome(d.date, car) || !conflicts(car, d).length; }
+function clashesOf(d) { return isHome(d.date, d.car) || !live2(d) ? [] : conflicts(d.car, d); }
+function busyText(car, d) { const c = conflicts(car, d).sort((x, y) => x.report - y.report)[0]; return c ? 'busy ' + hm(c.report) + '–' + hm(c.reach) + ' ' + sp(c.from) + '→' + sp(c.to) : ''; }
+function lastPlace(car, date, t) {
+  const p = S.base.duties.filter(o => o.date === date && o.car === car && o.reach <= t).sort((a, b) => b.reach - a.reach)[0];
+  return p ? p.to : '';
+}
+
+/* ---------- card ---------- */
+function ccard(d, dir) {
+  const i = st(d), c = carInfo(d.date, d.car), a = act(d, dir), open = S.open[d.key];
+  const cl = clashesOf(d);
+  const t = dir === 'in' ? etaOf(d) : d.leave;
+  const sch = schedTime(d);
+  const route = dir === 'in' ? 'from ' + sp(d.from) : 'to ' + sp(d.to);
+  const pill = cl.length ? '<span class="dot bad">Clash</span>' : i.prob ? '<span class="dot bad">Problem</span>' : i.late && !i.done ? '<span class="dot bad">Late</span>' : i.st === 'At pickup' ? '<span class="dot amb">Here</span>' : i.st === 'Guests in car' ? '<span class="dot blu">On road</span>' : i.done ? '<span class="dot grn">' + esc(i.pill) + '</span>' : '';
+  const ph = okPhone(c.phone) ? `<a class="ic call" href="tel:+${digits(c.phone)}" onclick="event.stopPropagation()">📞</a>` : '<span class="ic off">📞</span>';
+  const where = S.live.where[d.date + '|' + d.car], home = isHome(d.date, d.car);
+  return `<div class="cc ${cl.length || i.prob || (i.late && !i.done) ? 'late' : ''} ${i.done ? 'dim' : ''}">
+    <div class="m" data-tog="${esc(d.key)}">
+      <div class="cn ${home ? 'home' : ''}">${esc(d.car.replace('Car ', ''))}<small>${home ? 'family' : 'car'}</small></div>
+      <div class="mid"><div class="t">${hm(t)} <span class="s">${esc(route)}</span></div>
+        <div class="s">${[sch, c.reg ? esc(c.reg) : '', S.loc === 'ALL' || locOf(S.loc)[2].length > 1 ? esc(sp(dir === 'in' ? d.to : d.from)) : ''].filter(Boolean).join(' · ')}</div></div>
+      <div class="rt"><div class="px">👥 ${paxOf(d)}</div>${home ? '<span class="dot amb">🏠 ' + esc(homeName(d.date, d.car)) + '</span>' : pill}</div>
+    </div>
+    ${dir === 'in' && !home && !i.done ? (nx => `<div class="nx2">${nx ? 'Next: <b>' + hm(nx.leave) + '</b> ' + esc(sp(nx.from)) + ' → ' + esc(sp(nx.to)) + (nx.from !== d.to ? ' <span class="mut">(drive ' + drive(d.to, nx.from) + 'm)</span>' : '') : 'Free after this'}</div>`)(nextOfCar(d)) : ''}
+    ${cl.length ? `<div class="clw">⚠ Car ${esc(d.car.replace('Car ', ''))} is also on ${cl.map(o => hm(o.leave) + ' ' + esc(sp(o.from)) + '→' + esc(sp(o.to))).join(', ')}</div>` : ''}
+    ${open ? `<div class="x">
+      <div class="xr"><span>Driver</span><span><b>${esc(c.driver || '—')}</b> <span class="mut">${esc(c.phone || '')}</span></span></div>
+      <div class="xr"><span>Trip</span><span><b>${esc(sp(d.from))} ${hm(d.leave)} → ${esc(sp(d.to))} ${hm(d.reach)}</b></span></div>
+      ${d.event ? `<div class="xr"><span>Round</span><b>${esc(d.trip.replace(/^E\d+ \S+ - /, '').replace(/ \(.*\)$/, ''))}</b></div>` : d.trip ? `<div class="xr"><span>${d.from === 'AIR' || d.to === 'AIR' ? 'Flight' : 'Train'}</span><span><b>${esc(d.trip)}</b>${d.track ? ` <a href="${esc(d.track)}" target="_blank">live ↗</a>` : ''}</span></div>` : ''}
+      ${d.hampers ? `<div class="xr"><span>Hampers</span><b>${d.hampers}</b></div>` : ''}
+      ${where ? `<div class="xr"><span>Location</span><a href="${mapAt(where.lat, where.lng)}" target="_blank">📍 ${ago(where.at)}</a></div>` : ''}
+      ${i.s && i.s.by ? `<div class="xr"><span>Update</span><span><b>${esc(i.st)}</b> <span class="mut">${esc(i.s.by.replace(/^(Desk|Driver): /, ''))} · ${ago(i.s.at)}${i.s.note ? ' · ' + esc(i.s.note) : ''}</span></span></div>` : ''}
+      ${d.guests.map(g => `<div class="gx"><span>${esc(g.name)}</span>${okPhone(g.phone) ? `<a class="ic sm2" href="tel:+${digits(g.phone)}">📞</a>` : ''}</div>`).join('')}
+    </div>` : ''}
+    <div class="ab">${ph}${d.guests.length ? `<button class="ic" data-gs="${esc(d.key)}" title="Guests">👤</button>` : ''}${home ? `<span class="hnote">Family car · not tracked</span>` : `<button class="ic" data-edit="${esc(d.key)}" title="Edit">✎</button>`}${home ? '' : a ? `<button class="btn pri go ${S.inf && S.inf[d.key] ? 'busyb' : ''}" data-act="${esc(d.key)}" data-st="${a[0]}">${a[1]}</button>` : `<button class="btn go" data-edit="${esc(d.key)}">Done · ${hm((i.s || {}).at)}</button>`}</div>
+  </div>`;
+}
+function fcard(w) {
+  const c = carInfo(S.date, w.car), now = Date.now(), live = S.date === opDay(S.base.duties) && w.from <= now;
+  return `<div class="fr"><div class="cn sm">${esc(w.car.replace('Car ', ''))}</div>
+    <div class="mid"><div class="t2">${esc(sp(w.at))} <span class="mut" style="font-weight:500">· ${live ? 'free now' : hm(w.from)} → ${w.till ? hm(w.till) : 'end of day'}${w.till ? ' · ' + dur(w.till - (live ? now : w.from)) : ''}</span></div>
+      <div class="s">${w.next ? 'then ' + hm(w.next.leave) + ' ' + esc(sp(w.next.from)) + ' → ' + esc(sp(w.next.to)) : 'no more trips'}${c.driver ? ' · ' + esc(c.driver.split(' ')[0]) : ''}</div></div>
+    ${okPhone(c.phone) ? `<a class="ic call" href="tel:+${digits(c.phone)}">📞</a>` : '<span class="ic off">📞</span>'}</div>`;
+}
+
+/* ---------- screen ---------- */
+function renderCoord() {
+  if (!locs().some(l => l[0] === S.loc)) S.loc = 'ALL';
+  const L = S.loc, ds = S.base.duties.filter(d => d.date === S.date), q = S.q.trim().toLowerCase();
+  let body = '', counts = { out: 0, in: 0, free: 0 };
+  const out = ds.filter(d => inLoc(d.from, L) && !isGone(d) && !st(d).done && !stale(d)).sort((a, b) => a.leave - b.leave);
+  const inn = ds.filter(d => inLoc(d.to, L) && !st(d).done && !stale(d) && (L === 'ALL' ? isGone(d) : !inLoc(d.from, L))).sort((a, b) => etaOf(a) - etaOf(b));
+  const old = ds.filter(d => stale(d) && (inLoc(d.from, L) || inLoc(d.to, L)) && !isHome(d.date, d.car)).sort((a, b) => a.report - b.report);
+  const fr = freeNow(S.date).sort((a, b) => a.from - b.from);
+  const frHere = fr.filter(w => inLoc(w.at, L)), frElse = fr.filter(w => !inLoc(w.at, L));
+  const um = unmapped(S.date);
+  counts = { out: out.length, in: inn.length, free: frHere.length, plan: um.length };
+  const clashSet = ds.filter(d => !stale(d) && clashesOf(d).length);
+  if (!q && !S.clashView && S.tab === 'plan') {
+    body = um.length ? um.map(planCard).join('') : '<div class="empty">Every guest trip has a car 👍</div>';
+  } else if (S.clashView) {
+    body = clashSet.length ? clashSet.sort((a, b) => a.car.localeCompare(b.car, undefined, { numeric: true }) || a.report - b.report).map(d => ccard(d, 'out')).join('') : '<div class="empty">No clashes 👍</div>';
+  } else if (q) {
+    const num = /^\d+$/.test(q);
+    const hit = ds.filter(d => { if (num) return d.car === 'Car ' + Number(q); const c = carInfo(d.date, d.car); return [d.car, c.reg, c.driver].concat(d.guests.map(g => g.name)).join(' ').toLowerCase().indexOf(q) >= 0; })
+      .sort((a, b) => (st(a).done - st(b).done) || a.report - b.report);
+    body = hit.length ? hit.map(d => ccard(d, L !== 'ALL' && inLoc(d.to, L) && !inLoc(d.from, L) ? 'in' : 'out')).join('') : '<div class="empty">No trips for “' + esc(S.q) + '”</div>';
+  } else if (S.tab === 'free') {
+    const grp = (arr, title) => arr.length ? (title ? `<div class="sec">${title}</div>` : '') + `<div class="card np">${arr.map(fcard).join('')}</div>` : '';
+    if (L === 'ALL') {
+      const places = [...new Set(fr.map(w => w.at))];
+      body = places.map(p => grp(fr.filter(w => w.at === p), esc(sp(p)) + ' <span class="n">' + fr.filter(w => w.at === p).length + '</span>')).join('') || '<div class="empty">No free cars right now</div>';
+    } else {
+      body = (grp(frHere, '') || '<div class="empty">No free cars here right now</div>') + (frElse.length ? grp(frElse, 'Other places <span class="n">' + frElse.length + '</span>') : '');
+    }
+  } else {
+    const list = S.tab === 'in' ? inn : out, dir = S.tab;
+    const soon = Date.now() + 3 * 3600000, isToday = S.date === opDay(S.base.duties);
+    const now1 = isToday ? list.filter(d => (dir === 'in' ? etaOf(d) : d.leave) <= soon || st(d).step > 0) : list, later = isToday ? list.filter(d => now1.indexOf(d) < 0) : [];
+    const done = ds.filter(d => st(d).done && (dir === 'in' ? inLoc(d.to, L) : inLoc(d.from, L))).sort((a, b) => b.report - a.report);
+    body = (now1.map(d => ccard(d, dir)).join('') || '<div class="empty">Nothing ' + (dir === 'in' ? 'coming' : 'leaving') + (later.length ? ' in the next 3 hours' : '') + '</div>') +
+      (later.length ? `<details class="more"><summary>Later <span class="n">${later.length}</span></summary>${later.map(d => ccard(d, dir)).join('')}</details>` : '') +
+      (old.length ? `<details class="more"><summary>Not updated - past <span class="n">${old.length}</span></summary>${old.map(d => ccard(d, inLoc(d.to, L) && !inLoc(d.from, L) ? 'in' : 'out')).join('')}</details>` : '') +
+      (done.length ? `<details class="more"><summary>Done <span class="n">${done.length}</span></summary>${done.map(d => ccard(d, dir)).join('')}</details>` : '');
+  }
+  const head = S.base.head.filter(h => h.date === S.date && (inLoc(h.from, L) && L !== 'ALL'));
+  const headHtml = !q && !S.clashView && (S.tab === 'out' || S.tab === 'in') && head.length ? head.map(h => {
+    const own = ownLeft(S.date, h.from, h.to), left = ds.filter(d => d.event && d.from === h.from && d.to === h.to && isGone(d)).reduce((a, d) => a + paxOf(d), 0) + own;
+    return `<div class="hc" data-own="${esc(h.from + '|' + h.to + '|' + h.name)}"><span>${esc(h.name.replace(/ \(.*\)$/, ''))} ${h.dir === 'RETURN' ? '↩' : '→'}</span><b>${left}</b><span class="mut">/ ${h.expected} left${own ? ' · 🏠 ' + own : ''}</span><span class="plus">＋🏠</span></div>`; }).join('') : '';
+  const y = window.scrollY;
+  $('#app').innerHTML = `<div class="hd">${topNav()}
+      <div class="hrow"><select id="loc" class="hsel">${locs().map(l => `<option value="${l[0]}" ${l[0] === L ? 'selected' : ''}>📍 ${l[1]}</option>`).join('')}</select>
+        <select id="day" class="hsel sm">${dates().map(d => `<option value="${d}" ${d === S.date ? 'selected' : ''}>${d === today() ? 'Today' : dayLabel(d)}</option>`).join('')}</select></div>
+      <div class="srch"><input id="q" type="search" inputmode="search" placeholder="Car no., e.g. 7" value="${esc(S.q)}" autocomplete="off">${S.q ? '<button id="qx">✕</button>' : ''}</div>
+    </div>
+    ${S.clashView ? `<div class="clbar on" id="clv">⚠ ${clashSet.length} trips clash <span>✕</span></div>` : clashSet.length && !q ? `<div class="clbar" id="clv">⚠ ${clashSet.length} trips clash - tap to fix</div>` : ''}
+    ${S.q ? '' : gmBanner()}
+    <main class="cm">${headHtml}${body}</main>
+    <nav class="bn">${[['out', '⬆️', 'Leaving', counts.out], ['in', '⬇️', 'Coming', counts.in], ['free', '🅿️', 'Free', counts.free], ['plan', '📋', 'To plan', counts.plan]].map(t =>
+      `<button data-tab="${t[0]}" class="${!q && !S.clashView && S.tab === t[0] ? 'on' : ''}"><b>${t[1]}</b>${t[2]}${t[3] ? `<i class="${t[0] === 'plan' ? 'red' : ''}">${t[3]}</i>` : ''}</button>`).join('')}</nav>`;
+  $('#loc').onchange = e => { S.loc = e.target.value; store.set('la_loc', S.loc); S.open = {}; render(); window.scrollTo(0, 0); };
+  $('#day').onchange = e => { S.date = e.target.value; render(); window.scrollTo(0, 0); };
+  wireTop();
+  if ($('#clv')) $('#clv').onclick = () => { S.clashView = !S.clashView; render(); window.scrollTo(0, 0); };
+  $$('[data-gmb]').forEach(b => b.onclick = () => guestMsgSheet(b.dataset.gmb));
+  const qi = $('#q');
+  qi.oninput = e => { S.q = e.target.value; clearTimeout(S.qt); S.qt = setTimeout(() => { render(); const z = $('#q'); z.focus(); z.setSelectionRange(z.value.length, z.value.length); }, 250); };
+  if ($('#qx')) $('#qx').onclick = () => { S.q = ''; render(); };
+  $$('[data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab === 'more') return coordMenu(); S.tab = b.dataset.tab; S.q = ''; S.clashView = false; render(); window.scrollTo(0, 0); });
+  $$('[data-gs]').forEach(b => b.onclick = () => guestSheet(find(b.dataset.gs).guests, find(b.dataset.gs)));
+  $$('[data-asg]').forEach(b => b.onclick = () => assignSheet(um.find(j => j.id === b.dataset.asg)));
+  $$('[data-gj]').forEach(b => b.onclick = () => { const j = um.find(x => x.id === b.dataset.gj); guestSheet(j.legs.map(l => ({ name: l.name, phone: l.phone, group: l.group })), null); });
+  $$('[data-tog]').forEach(b => b.onclick = () => { const k = b.dataset.tog; S.open[k] = !S.open[k]; render(); });
+  const find = k => ds.find(x => x.key === k);
+  $$('[data-act]').forEach(b => b.onclick = () => sendStep(find(b.dataset.act), b.dataset.st, coordSend));
+  $$('[data-edit]').forEach(b => b.onclick = () => editTrip(find(b.dataset.edit)));
+  $$('[data-own]').forEach(b => b.onclick = () => { const p = b.dataset.own.split('|'); ownSheet(p[0], p[1], p.slice(2).join('|')); });
+  window.scrollTo(0, y);
+}
+
+/* ---------- to plan: guest trips without a car (new or changed arrivals / departures) ---------- */
+function unmapped(date) {
+  const by = {};
+  (S.base.legs || []).filter(l => l.date === date && !String(l.car || '').trim()).forEach(l => { const k = l.journey || (l.from + '>' + l.to + '|' + l.report); (by[k] = by[k] || []).push(l); });
+  return Object.keys(by).map(k => {
+    const L = by[k], f = L[0], report = f.report || 0, leave = f.leave || report + 600000, reach = f.reach || leave + drive(f.from, f.to) * 60000;
+    return { id: k, legs: L, date, from: f.from, to: f.to, report, leave, reach, pax: L.reduce((a, l) => a + (l.pax || 1), 0), leg: f.leg, train: f.train, time: f.time,
+      pd: { key: 'J|' + k, date, car: '', report, leave, reach, busy: reach, from: f.from, to: f.to, type: 'Guest', event: false, guests: [] } };
+  }).sort((a, b) => a.report - b.report);
+}
+function planCard(j) {
+  const air = j.from === 'AIR' || j.to === 'AIR';
+  return `<div class="cc late"><div class="m"><div class="cn plan">?<small>no car</small></div>
+    <div class="mid"><div class="t">${hm(j.leave)} <span class="s">${esc(sp(j.from))} → ${esc(sp(j.to))}</span></div>
+      <div class="s">${[j.train ? (air ? '✈ ' : '🚆 ') + esc(j.train) + (j.time ? ' ' + esc(j.time) : '') : '', j.leg === 'ARRIVAL' ? 'arrival' : j.leg === 'DEPARTURE' ? 'departure' : 'transfer'].filter(Boolean).join(' · ')}</div></div>
+    <div class="rt"><div class="px">👥 ${j.pax}</div></div></div>
+    <div class="ab"><button class="ic" data-gj="${esc(j.id)}" title="Guests">👤</button><button class="btn pri go" data-asg="${esc(j.id)}">Assign car</button></div></div>`;
+}
+function assignSheet(j) {
+  const pd = j.pd, pk = pickable(j.date), cars = pk.cars;
+  const opts = cars.map(n => ({ n, ok: canDo(n, pd), at: lastPlace(n, j.date, pd.report), h: isHome(j.date, n) }))
+    .sort((a, b) => a.h - b.h || b.ok - a.ok || (b.at === j.from) - (a.at === j.from) || a.n.localeCompare(b.n, undefined, { numeric: true }));
+  sheet(`<h3>${hm(j.leave)} · ${esc(sp(j.from))} → ${esc(sp(j.to))}</h3><div class="meta">${esc([j.train, j.time].filter(Boolean).join(' '))} · 👥 ${j.pax}</div>
+    <label>Car</label><select id="a_car"><option value="">Choose a car…</option>${opts.map(o => `<option value="${o.n}">${o.n} · ${drvTag(j.date, o.n)}${o.h ? ' 🏠' : ''}${o.ok ? ' · free' + (o.at ? ' · at ' + sp(o.at) : '') : ' · ' + esc(busyText(o.n, pd))}</option>`).join('')}</select>
+    ${!opts.length ? '<div class="meta" style="margin-top:6px">No cars planned for this day - add them in Cars.</div>' : pickNote(pk)}
+    <label>Guests in this car</label><div class="card np">${j.legs.map((l, k) => `<label class="ck"><input type="checkbox" data-k="${k}" checked> ${esc(l.name)}</label>`).join('')}</div>
+    <div class="meta">Untick guests to send them in another car.</div>
+    <button class="btn pri big" style="width:100%;margin-top:14px" id="a_ok">Assign</button><div id="a_w" class="meta" style="text-align:center;margin-top:6px;color:var(--red)"></div>`, () => {
+    $('#a_car').onchange = () => { const c = $('#a_car').value; $('#a_w').textContent = c && !canDo(c, pd) ? '⚠ ' + c + ' is ' + busyText(c, pd) + ' - will show as a clash' : ''; };
+    $('#a_ok').onclick = () => {
+      const car = $('#a_car').value; if (!car) return toast('Choose a car');
+      const items = j.legs.filter((l, k) => $(`[data-k="${k}"]`).checked).map(l => ({ id: l.id, name: l.name, leg: l.leg, car }));
+      if (!items.length) return toast('Tick at least one guest');
+      if (!lockBtn($('#a_ok'))) return;
+      call('logiApp_mapGuests', [S.pin, items], r => { closeSheet(); apply(r); toast('✓ ' + car + ' assigned'); });
+    };
+  });
+}
+function guestSheet(guests, d) {
+  sheet(`<h3>Guests</h3>${d ? `<div class="meta">${esc(d.car)} · ${hm(d.leave)} ${esc(sp(d.from))} → ${esc(sp(d.to))}</div>` : ''}
+    <div class="card np">${guests.map(g => `<div class="fr"><div class="mid"><div class="t2">${esc(g.name)}</div><div class="s">${okPhone(g.phone) ? esc(g.phone) : 'no number'}${g.group ? ' · ' + esc(g.group) : ''}</div></div>${icons(g.phone, 'Hello, this is the travel desk for the Bothra family events.')}</div>`).join('')}</div>
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`);
+}
+function teamLinksSheet() {
+  call('logiApp_teamLinks', [S.pin], links => sheet(`<h3>Team app links</h3><div class="meta">Each person gets their own link - no PIN, stays signed in. Add people with a phone in More → Team.</div>
+    ${links.map(l => `<div class="row"><div class="l">${esc(l.name)}<small>${esc(l.role || '')}${l.place ? ' · ' + esc(sp(l.place)) : ''}</small></div>
+      <span class="icons"><a class="btn sm pri" target="_blank" href="${waLink(l.phone, 'Hi ' + l.name.split(' ')[0] + ', this is your travel desk app for the events.\n\n1. Open this link\n2. Share → Add to Home Screen\n3. Open it from the home screen - you stay signed in.\n\n' + l.url)}">💬 Send</a><button class="ic" data-copy="${esc(l.url)}">📋</button></span></div>`).join('') || '<div class="empty">No team members with a phone yet.</div>'}
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`, () => $$('[data-copy]').forEach(b => b.onclick = () => { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); toast('Link copied'); })));
+}
+
+/* people leaving in a family car - only a count, no trip */
+function ownSheet(from, to, name) {
+  const date = S.date, FAM = famCars();
+  const homes = Object.keys(FAM).sort((x, y) => x.localeCompare(y, undefined, { numeric: true }));
+  const entries = Object.keys(S.live.status).filter(k => k.indexOf('OWN|' + date + '|' + from + '|' + to + '|') === 0).map(k => Object.assign({ key: k }, S.live.status[k]));
+  let n = 1;
+  sheet(`<h3>🏠 Left in a family car</h3><div class="meta">${esc(name.replace(/ \(.*\)$/, ''))} · ${esc(sp(from))} → ${esc(sp(to))}</div>
+    ${homes.length ? `<label>Car</label><select id="o_car"><option value="">Family car</option>${homes.map(c => `<option value="${c}">${esc(FAM[c])} · ${c}</option>`).join('')}</select>` : ''}
+    <div class="stepper"><button id="mi">−</button><b id="nv">1</b><button id="pl">+</button></div>
+    <button class="btn pri big" style="width:100%" id="ok">Add</button>
+    ${entries.length ? `<div class="sec">Already added</div><div class="card np">${entries.map(e => `<div class="fr"><div class="mid"><div class="t2">👥 ${e.pax} · ${esc(e.by ? '' : '')}${hm(e.at)}</div><div class="s">${esc((e.by || '').replace(/^Desk: /, ''))}</div></div><button class="ic" data-rm="${esc(e.key)}">✕</button></div>`).join('')}</div>` : ''}`, () => {
+    $('#mi').onclick = () => { n = Math.max(1, n - 1); $('#nv').textContent = n; };
+    $('#pl').onclick = () => { n = n + 1; $('#nv').textContent = n; };
+    $('#ok').onclick = () => { const car = $('#o_car') ? $('#o_car').value : ''; if (!lockBtn($('#ok'))) return; call('logiApp_ownCar', [S.pin, S.who, date, from, to, car, n, ''], live => { S.live = live; closeSheet(); render(); toast('✓ ' + n + ' left in family car'); }); };
+    $$('[data-rm]').forEach(b => b.onclick = () => call('logiApp_ownCar', [S.pin, S.who, date, from, to, '', 0, b.dataset.rm], live => { S.live = live; closeSheet(); render(); toast('Removed'); }));
+  });
+}
+
+/* ---------- edit ---------- */
+/* cars to offer in a dropdown: those with a driver + phone. Before any driver is entered for that day,
+   every planned car is offered (marked "no driver yet") so the plan can still be changed. */
+function pickable(date) {
+  const day = S.base.cars.filter(c => c.date === date), has = c => String(c.driver || '').trim() && String(c.phone || '').trim(), home = c => /HOME/i.test(c.source || '');
+  const hired = day.filter(c => !home(c)), ok = hired.filter(has), fam = day.filter(c => home(c) && has(c));
+  const list = (ok.length ? ok : hired).concat(fam);
+  return { cars: [...new Set(list.map(c => c.car))], hidden: ok.length ? hired.length - ok.length : 0, none: hired.length > 0 && !ok.length };
+}
+const drvTag = (date, n) => { const c = carInfo(date, n), dn = String(c.driver || '').trim(); return dn && String(c.phone || '').trim() ? esc(dn.split(' ')[0]) : 'no driver yet'; };
+const pickNote = p => p.none ? '<div class="meta" style="margin-top:6px">No drivers entered for this day yet - add them in Cars.</div>' : p.hidden ? `<div class="meta" style="margin-top:6px">${p.hidden} car${p.hidden > 1 ? 's' : ''} hidden - no driver/phone. Add in Cars.</div>` : '';
+/* a trip moved by some minutes (delay or new time) - used to check cars at the new time */
+const shiftTrip = (d, min) => Object.assign({}, d, { report: d.report + min * 60000, leave: d.leave + min * 60000, reach: d.reach + min * 60000, busy: (d.busy || d.reach) + min * 60000 });
+const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(String(t || '')); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+function editTrip(d) {
+  const pk = pickable(d.date), i = st(d);
+  const names = [...new Set(pk.cars.concat([d.car]))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const w = d.event ? S.base.waves.find(x => x.date === d.date && x.from === d.from && x.to === d.to && Math.abs((x.report || 0) - d.report) < 60000) : null;
+  /* the time a coordinator can change: event = round leaves at; pickup = train/flight arrives; drop = departs; check-out move = car leaves */
+  const tLabel = d.event ? 'Leaves at' : d.type === 'Guest pickup' ? 'Train / flight now arrives at' : d.type === 'Guest drop' ? 'Train / flight now departs at' : 'Car leaves at';
+  const t0 = d.event ? (w ? w.leave : hm(d.leave)) : (d.type === 'Hotel transfer' ? hm(d.leave) : (schedTime(d).replace(/^\S+ /, '') || hm(d.leave)));
+  let dd = d;
+  const optsHtml = (x, sel) => names.map(n => ({ n, ok: canDo(n, x), at: lastPlace(n, x.date, x.report), h: isHome(x.date, n) }))
+    .sort((a, b) => (b.n === sel) - (a.n === sel) || a.h - b.h || b.ok - a.ok || (b.at === x.from) - (a.at === x.from) || a.n.localeCompare(b.n, undefined, { numeric: true }))
+    .map(o => `<option value="${o.n}" ${o.n === sel ? 'selected' : ''}>${o.n} · ${drvTag(x.date, o.n)}${o.h ? ' 🏠' : ''}${o.n === d.car ? ' (now)' : ''}${o.ok ? ' · free' + (o.at && o.n !== d.car ? ' · at ' + sp(o.at) : '') : ' · ' + esc(busyText(o.n, x))}</option>`).join('');
+  sheet(`<h3>${esc(d.car)} · ${hm(d.leave)}</h3><div class="meta">${esc(sp(d.from))} → ${esc(sp(d.to))}</div>
+    <div class="grid2"><div><label>${tLabel}</label><input id="e_t" type="time" value="${esc(t0)}"></div>${w ? `<div><label>People (whole round)</label><input id="e_p" type="number" inputmode="numeric" value="${w.pax}"></div>` : '<div></div>'}</div>
+    <div id="e_tm" class="meta"></div>
+    <label>Car</label><select id="e_car">${optsHtml(d, d.car)}</select>${pickNote(pk)}
+    <div id="e_sw"></div>
+    <button class="btn pri big" style="width:100%;margin-top:16px" id="e_save">Save</button>
+    <div class="lnk">${i.done ? '' : '<a id="e_prob">⚠️ Problem</a>'}${i.st ? '<a id="e_undo">↩ Clear status</a>' : ''}${i.done ? '' : '<a id="e_cancel">✕ Cancel trip</a>'}</div>`, () => {
+    const upd = (retime) => {
+      const m0 = toMin(t0), m1 = toMin($('#e_t').value), delta = m0 != null && m1 != null ? m1 - m0 : 0;
+      dd = delta ? shiftTrip(d, delta) : d;
+      if (retime) $('#e_car').innerHTML = optsHtml(dd, $('#e_car').value);
+      $('#e_tm').innerHTML = delta ? `${delta > 0 ? '+' : ''}${delta} min · car at ${esc(sp(d.from))} by <b>${hm(dd.report)}</b>, reaches ${esc(sp(d.to))} ~${hm(dd.reach)}` : '';
+      const car = $('#e_car').value, cf = conflicts(car, dd);
+      const own = car === d.car && cf.length ? `<div class="clw">⚠ ${esc(car)} is busy at the new time - pick a free car above</div>` : '';
+      $('#e_sw').innerHTML = own + (cf.length && !delta && car !== d.car ? `<div class="swbox"><b>${esc(car)} is busy then</b>${cf.map(o => `<button class="btn pri" data-swap="${esc(o.key)}">⇄ Swap: ${esc(car)} takes this, ${esc(d.car)} takes ${hm(o.leave)} ${esc(sp(o.from))}→${esc(sp(o.to))}</button>`).join('')}</div>` : '');
+      const sv = $('#e_save'); sv.textContent = cf.length ? 'Save anyway (will show as clash)' : 'Save'; sv.className = 'btn big ' + (cf.length ? 'warnb' : 'pri');
+      $$('[data-swap]').forEach(b => b.onclick = () => lockBtn(b) && call('logiApp_swapTrips', [S.pin, S.who, d.key, b.dataset.swap], r => { closeSheet(); S.open = {}; apply(r); toast('✓ Cars swapped'); }));
+    };
+    $('#e_car').onchange = () => upd(false); $('#e_t').oninput = () => upd(true);
+    $('#e_save').onclick = () => {
+      const car = $('#e_car').value, tNew = $('#e_t').value, ch = { car };
+      if (w) { ch.leave = tNew; ch.pax = $('#e_p').value; }
+      else if (tNew && tNew !== t0) ch.time = tNew;
+      if (car === d.car && !ch.time && (!w || (ch.leave === w.leave && Number(ch.pax) === w.pax))) return closeSheet();
+      const willClash = conflicts(car, dd).length > 0;
+      if (!lockBtn($('#e_save'))) return;
+      call('logiApp_editTrip', [S.pin, S.who, d.key, ch], r => { closeSheet(); S.open = {}; apply(r); toast(willClash ? '⚠ Saved - shows as clash' : ch.time ? '✓ New time saved for everyone on this trip' : '✓ Saved'); });
+    };
+    const pb = $('#e_prob'); if (pb) pb.onclick = () => sendStep(d, 'Problem', coordSend);
+    const ub = $('#e_undo'); if (ub) ub.onclick = () => { closeSheet(); coordSend(d.key, 'Reset', null, ''); };
+    const cb = $('#e_cancel'); if (cb) cb.onclick = () => { if (confirm('Cancel this trip?')) { closeSheet(); coordSend(d.key, 'Cancelled', null, 'Cancelled by ' + S.who); } };
+    upd(false);
+  });
+}
+
+/* ---------- menu, help, admin ---------- */
+/* primary navigation in the header: Trips (live) · Cars · Team, plus one small menu */
+function topNav() {
+  return `<div class="hnav"><div class="seg2">${[['', 'Trips'], ['cars', 'Cars'], ['team', 'Team']].map(t => `<button data-sec="${t[0]}" class="${(S.admin || '') === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div><button class="ibtn" id="menu">⋯</button></div>`;
+}
+function wireTop() {
+  $$('[data-sec]').forEach(b => b.onclick = () => { S.admin = b.dataset.sec || null; render(); window.scrollTo(0, 0); });
+  $('#menu').onclick = coordMenu;
+}
+function coordMenu() {
+  sheet(`<div class="menu">
+    <button class="btn" data-a="gm">💬 Guest messages (car details)</button>
+    <button class="btn" data-a="ml">📲 My link (stay signed in)</button>
+    <button class="btn" data-a="help">ⓘ How it works</button>
+    <button class="btn" data-a="rf">↻ Refresh</button>
+    <button class="btn ghost" data-a="out">Sign out (${esc(S.who)})</button></div>`, () => {
+    $$('[data-a]').forEach(b => b.onclick = () => {
+      const a = b.dataset.a; closeSheet();
+      if (a === 'gm') guestMsgSheet();
+      else if (a === 'ml') myLinkSheet();
+      else if (a === 'help') help();
+      else if (a === 'rf') call('logiApp_refresh', [S.pin], r => { apply(r); toast('Up to date'); });
+      else if (a === 'out') { store.set('la_pin', ''); S.pin = ''; keepUrl({ app: 'logistics' }); renderLogin(); }
+    });
+  });
+}
+function help() {
+  sheet(`<h3>How it works</h3><div class="help">
+    <p><b>📍 Place</b> - pick where you are. Leaving and Coming show only your place.</p>
+    <p><b>Search</b> - type a car number to find it anywhere.</p>
+    <p><b>Arrived / Left</b> - tap when the car reaches you and when it goes. For event cars you confirm how many got in.</p>
+    <p><b>Tap a card</b> for driver, train / flight and guests.</p>
+    <p><b>✎ Edit</b> - swap the car (e.g. a delay - send a free car), change an event round's time or head-count, report a problem, cancel.</p>
+    <p><b>Coming</b> - every arriving car shows its ETA and its next trip, so you know what it can do after.</p>
+    <p><b>👤</b> - guest names with call / WhatsApp.</p>
+    <p><b>Free</b> - cars waiting between trips, where, until when and their next trip.</p>
+    <p><b>To plan</b> - new or changed arrivals / departures with no car yet. Tap Assign car, pick a free one.</p>
+    <p><b>Undo</b> - every tap can be undone from the message at the top.</p></div>
+    <button class="btn ghost" style="width:100%" data-close>Close</button>`);
+}
+function renderAdmin() {
+  if (S.admin !== 'cars' && S.admin !== 'team') S.admin = 'cars';
+  const v = { cars: viewCars, team: viewTeam }[S.admin]();
+  const y = window.scrollY;
+  $('#app').innerHTML = `<div class="hd">${topNav()}${S.admin === 'cars' ? `<div class="hrow"><select id="day" class="hsel">${dates().map(d => `<option value="${d}" ${d === S.date ? 'selected' : ''}>${d === today() ? 'Today' : dayLabel(d)}</option>`).join('')}</select></div>` : ''}</div>
+    <main class="cm">${v.html}</main>`;
+  wireTop();
+  if ($('#day')) $('#day').onchange = e => { S.date = e.target.value; render(); };
+  v.wire && v.wire(); window.scrollTo(0, y);
+}
+
+/* ---------- guest messages: car details the day before ---------- */
+const nameTc = s => String(s || '').toLowerCase().replace(/(^|[\s(])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/'S\b/g, "'s");
+const contactsOf = day => (S.base.contacts || {})[day] || {};
+const contactsOk = day => { const c = contactsOf(day); return !!(c.desk && okPhone(c.deskPh) && c.ev && okPhone(c.evPh)); };
+/* hired car needs a driver + phone; a cab is booked on the day; both contacts must be set for the day */
+const msgReady = d => contactsOk(d.date) && (/^Cab /.test(d.car) || (!!carInfo(d.date, d.car).driver && okPhone(carInfo(d.date, d.car).phone)));
+const msgKey = (d, g) => 'MSG|' + d.key + '|' + g.id;
+function msgTrips(day) { return S.base.duties.filter(d => d.date === day && !d.event && d.guests.length).sort((a, b) => a.report - b.report); }
+function msgStats(day, upcoming) {
+  const o = { all: 0, sent: 0, left: 0, wait: 0, nophone: 0 };
+  msgTrips(day).filter(d => !upcoming || d.report > Date.now()).forEach(d => d.guests.forEach(g => {
+    if (!okPhone(g.phone)) { o.nophone++; return; }
+    o.all++;
+    if (S.live.status[msgKey(d, g)]) o.sent++; else if (msgReady(d)) o.left++; else o.wait++;
+  }));
+  return o;
+}
+const ph10 = p => String(p || '').replace(/^\+91 ?/, '');
+function guestMsgText(d, g) {
+  const ci = carInfo(d.date, d.car), cab = /^Cab /.test(d.car), c = contactsOf(d.date);
+  const tr = (g.trip || '').replace(/ \(.*$/, ''), sch = schedTime(d), air = d.from === 'AIR' || d.to === 'AIR';
+  const others = d.guests.filter(x => x.id !== g.id).map(x => nameTc(x.name));
+  const L = ['Namaste ' + nameTc(g.name).split(' ')[0] + ' ji 🙏', '', '*Aman & Sandhya* · your car on *' + dayLabel(d.date) + '*', ''];
+  if (d.type === 'Guest pickup') {
+    if (tr) L.push((air ? '✈ ' : '🚆 ') + tr + (sch ? ' · arrives ' + sch.replace(/^\S+ /, '') : ''));
+    L.push('📍 Your car will wait at ' + pname(d.from) + ' from *' + hm(d.report) + '*');
+    L.push('➜ It takes you to ' + pname(d.to));
+  } else if (d.type === 'Guest drop') {
+    if (tr) L.push((air ? '✈ ' : '🚆 ') + tr + (sch ? ' · departs ' + sch.replace(/^\S+ /, '') : ''));
+    L.push('📍 Please be ready at ' + pname(d.from) + ' by *' + hm(d.report) + '* · car leaves ' + hm(d.leave));
+    L.push('➜ To ' + pname(d.to));
+  } else {
+    L.push('🧳 Check-out: car leaves ' + pname(d.from) + ' at *' + hm(d.leave) + '* for ' + pname(d.to));
+    L.push('Please keep your bags ready by ' + hm(d.report));
+  }
+  L.push('');
+  if (cab) L.push('🚕 A cab will be booked for you. Cab number and driver will be sent before pickup.');
+  else {
+    L.push('🚗 ' + [ci.model, ci.reg].filter(Boolean).join(' · ') + (ci.model || ci.reg ? '' : 'Car'));
+    L.push('👤 Driver: ' + (ci.driver || '') + ' · ' + ph10(ci.phone));
+  }
+  if (others.length) L.push('👥 With you: ' + others.join(', '));
+  L.push('', '🛎️ Travel desk at the hotel: ' + c.desk + ' · ' + ph10(c.deskPh));
+  L.push('🎉 Event coordinator: ' + c.ev + ' · ' + ph10(c.evPh));
+  return L.join('\n');
+}
+function gmBanner() {
+  const ds = dates(), t = opDay(S.base.duties), next = ds.find(x => x > t);
+  const out = [];
+  [t, next].forEach(day => {
+    if (!day || ds.indexOf(day) < 0) return;
+    const o = msgStats(day, day === t), todo = o.left + o.wait;
+    if (!todo) return;
+    out.push(`<div class="clbar ${day === next ? 'on' : ''}" data-gmb="${day}">💬 ${day === t ? 'Today' : 'Tomorrow'}: ${todo} guest${todo === 1 ? '' : 's'} still need car details${contactsOk(day) ? '' : ' · add desk + coordinator'}<span>›</span></div>`);
+  });
+  return out.join('');
+}
+function guestMsgSheet(day) {
+  const ds = dates(), t = opDay(S.base.duties);
+  day = day || ds.find(x => x > t) || ds[ds.length - 1];
+  const trips = msgTrips(day), o = msgStats(day), c = contactsOf(day);
+  const desk = S.base.team.filter(x => x.role === 'Travel desk')[0] || {};
+  const card = d => {
+    const ci = carInfo(d.date, d.car), cab = /^Cab /.test(d.car), noDrv = !cab && !(ci.driver && okPhone(ci.phone));
+    const withPh = d.guests.filter(g => okPhone(g.phone));
+    return `<div class="gmc"><div class="gmh"><b>${hm(d.report)}</b> ${esc(sp(d.from))} → ${esc(sp(d.to))}<span class="tag car">${esc(d.car)}</span>${noDrv ? '<span class="tag warn">driver missing</span>' : ''}</div>
+      ${d.guests.map(g => { const s = S.live.status[msgKey(d, g)], ph = okPhone(g.phone);
+        if (!ph) return `<div class="gmr"><span>${esc(nameTc(g.name))}</span><span class="meta">${withPh.length ? 'no phone · told via ' + esc(nameTc(withPh[0].name).split(' ')[0]) : 'no phone - call group'}</span></div>`;
+        if (!msgReady(d)) return `<div class="gmr"><span>${esc(nameTc(g.name))}</span><span class="btn sm off">${noDrv ? 'Driver missing' : 'Add contacts'}</span></div>`;
+        return `<div class="gmr"><span>${esc(nameTc(g.name))}</span><a class="btn sm ${s ? '' : 'pri'}" target="_blank" data-gm="${esc(msgKey(d, g))}" href="${waLink(g.phone, guestMsgText(d, g))}">${s ? '✓ Sent' : '💬 Send'}</a></div>`; }).join('')}</div>`;
+  };
+  sheet(`<h3>Guest messages · ${dayLabel(day)}</h3>
+    <div class="chips">${ds.map(x => `<span data-gd="${x}" class="${x === day ? 'on' : ''}">${dayLabel(x)}</span>`).join('')}</div>
+    <div class="gmct"><b>Contacts in the message for ${dayLabel(day)}</b>
+      <div class="grid2"><div><label>Travel desk at hotel</label><input id="c_d" value="${esc(c.desk || desk.name || '')}" placeholder="Name"></div><div><label>Phone</label><input id="c_dp" type="tel" inputmode="tel" value="${esc(c.deskPh || desk.phone || '')}" placeholder="98xxxxxxxx"></div></div>
+      <div class="grid2"><div><label>Event coordinator</label><input id="c_e" value="${esc(c.ev || '')}" placeholder="Name"></div><div><label>Phone</label><input id="c_ep" type="tel" inputmode="tel" value="${esc(c.evPh || '')}" placeholder="98xxxxxxxx"></div></div>
+      <button class="btn ${contactsOk(day) ? '' : 'pri'}" id="c_save" style="width:100%;margin-top:8px">${contactsOk(day) ? 'Update contacts' : 'Save contacts'}</button></div>
+    <div class="gmst"><b>${o.sent}/${o.all}</b> sent${o.wait ? ` · <span class="red">${o.wait} waiting (driver / contacts)</span>` : ''}${o.nophone ? ` · ${o.nophone} without phone` : ''}</div>
+    ${o.left ? `<button class="btn pri big" id="gm_next" style="width:100%">💬 Send next (${o.left} left)</button>` : o.all && !o.wait ? '<div class="done1">✓ Everyone has their car details</div>' : ''}
+    ${trips.map(card).join('') || '<div class="empty">No guest pickups or drops on this day</div>'}
+    <div class="meta" style="margin-top:8px">If a car or time changes after sending, that guest shows Send again.</div>
+    <button class="btn ghost" style="width:100%;margin-top:10px" data-close>Close</button>`, () => {
+    $$('[data-gd]').forEach(b => b.onclick = () => guestMsgSheet(b.dataset.gd));
+    const mark = k => { if (!S.live.status[k]) coordSend(k, 'Sent', null, ''); setTimeout(() => guestMsgSheet(day), 300); };
+    $$('[data-gm]').forEach(a => a.addEventListener('click', () => mark(a.dataset.gm)));
+    const nx = $('#gm_next');
+    if (nx) nx.onclick = () => {
+      let hit = null;
+      msgTrips(day).some(d => msgReady(d) && d.guests.some(g => { if (okPhone(g.phone) && !S.live.status[msgKey(d, g)]) { hit = [d, g]; return true; } return false; }));
+      if (!hit) return;
+      const a = document.createElement('a'); a.href = waLink(hit[1].phone, guestMsgText(hit[0], hit[1])); a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove();
+      mark(msgKey(hit[0], hit[1]));
+    };
+    $('#c_save').onclick = () => {
+      const v = { desk: $('#c_d').value.trim(), deskPh: $('#c_dp').value.trim(), ev: $('#c_e').value.trim(), evPh: $('#c_ep').value.trim() };
+      if (!v.desk || !okPhone(v.deskPh) || !v.ev || !okPhone(v.evPh)) return toast('Fill both names and 10-digit phones');
+      if (!lockBtn($('#c_save'))) return;
+      call('logiApp_saveContacts', [S.pin, S.who, day, v], r => { apply(r); toast('✓ Contacts saved'); guestMsgSheet(day); });
+    };
+  });
+}
+/* personal link that always opens signed in */
+function myLinkSheet() {
+  const tok = S.pin.indexOf('S:') === 0 ? 's=' + S.pin.slice(2) : S.pin.indexOf('C:') === 0 ? 'c=' + S.pin.slice(2) : '';
+  const url = S.base && S.base.appUrl && tok ? S.base.appUrl + '?app=logistics&' + tok : '';
+  sheet(`<h3>📲 My link</h3><div class="meta">This link always opens the app signed in as <b>${esc(S.who)}</b>. Save it, or open it and Add to Home screen. Don't share it.</div>
+    ${url ? `<div class="box" style="word-break:break-all;font-size:12px;margin-top:10px">${esc(url)}</div>
+    <div class="nav2"><button class="btn" id="ml_copy">📋 Copy</button><a class="btn pri" target="_blank" href="${waLink('', 'My travel desk link: ' + url)}">💬 WhatsApp</a></div>` : '<div class="meta">Sign out and sign in again once to get your link.</div>'}
+    <button class="btn ghost" style="width:100%;margin-top:10px" data-close>Close</button>`, () => {
+    const b = $('#ml_copy'); if (b) b.onclick = () => { try { navigator.clipboard.writeText(url).then(() => toast('Copied')); } catch (e) { toast(url); } };
+  });
+}
+
+/* ---------- WhatsApp day plan ---------- */
+function dayPlanText(l, date) {
+  const mine = S.base.cars.filter(c => c.date === date && digits(c.phone) === digits(l.phone)).map(c => c.car);
+  const trips = S.base.duties.filter(d => d.date === date && mine.indexOf(d.car) >= 0).sort((a, b) => a.report - b.report);
+  const desk = S.base.team.filter(t => t.role === 'Travel desk');
+  const reg = mine.map(c => carInfo(date, c).reg).filter(Boolean).join(', ');
+  const L = ['🚗 *' + mine.join(', ') + (reg ? ' · ' + reg : '') + '*', '📅 *' + dayLabel(date) + '* · ' + trips.length + ' trips', '', 'Namaste ' + (l.driver ? l.driver.split(' ')[0] + ' ji' : 'ji') + ' 🙏', ''];
+  trips.forEach((d, k) => {
+    const sch = schedTime(d), tr = d.guests.length && d.guests[0].trip ? d.guests[0].trip.replace(/ \(.*$/, '') : '';
+    L.push('*' + (k + 1) + '.  ' + hm(d.report) + '*  ' + sp(d.from) + ' ➜ ' + sp(d.to));
+    const x = [];
+    if (tr) x.push((d.from === 'AIR' || d.to === 'AIR' ? '✈ ' : '🚆 ') + tr + (sch ? ' ' + sch.replace(/^\S+ /, '') : ''));
+    x.push('👥 ' + d.pax); if (d.hampers) x.push('🎁 ' + d.hampers);
+    if (/standby/.test(d.type)) x.push('⏳ venue par rukein');
+    L.push('     ' + x.join(' · '));
+    if (d.guests.length) L.push('     ' + d.guests.map(g => g.name.split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' ') + (okPhone(g.phone) ? ' ' + String(g.phone).replace(/^\+91 ?/, '') : '')).join(', '));
+    L.push('');
+  });
+  L.push('👉 *Har trip par yeh link kholein, bas bada button dabana hai:*', l.url);
+  if (desk.length) L.push('', '📞 Desk: ' + desk.map(x => x.name + ' ' + String(x.phone).replace(/^\+91 ?/, '')).join(' / '));
+  return L.join('\n');
+}
+
+/* ======================= DRIVER (one action at a time) ======================= */
+function dcall(fn, args, ok, quiet) {
+  if (!quiet) loading(true);
+  google.script.run.withSuccessHandler(r => { if (!quiet) loading(false); ok(r); }).withFailureHandler(e => { if (!quiet) loading(false);
+    if (!S.drv) $('#app').innerHTML = `<div class="login"><div class="logo">🚗</div><p>${esc(e.message)}</p><button class="btn pri big" style="width:100%" onclick="location.reload()">${bi('फिर से', 'Try again')}</button></div>`; else if (!quiet) toast('⚠️ ' + e.message); })[fn].apply(null, args);
+}
+function drvKeep(r) { try { localStorage.setItem('la_drv_' + PARAMS.d, JSON.stringify(r)); } catch (e) {} }
+function loadDriver(quiet) {
+  if (!S.drv && !quiet) { try { const c = JSON.parse(localStorage.getItem('la_drv_' + PARAMS.d) || 'null'); if (c) { S.drv = c; S.date = driverDate(); renderDriver(); quiet = true; } } catch (e) {} }
+  dcall('driverApp_load', [PARAMS.d], r => { S.drv = r; drvKeep(r); if (!S.date || !r.cars.some(c => c.date === S.date)) S.date = driverDate(); if (!S.drvBusy) renderDriver(); }, quiet);
+}
+function driverDate() { const ds = [...new Set(S.drv.cars.map(c => c.date))].sort(), t = opDay(S.drv.duties); return ds.indexOf(t) >= 0 ? t : (ds.find(d => d > t) || ds[ds.length - 1]); }
+/* screen moves on at once; the save goes in the background; a second tap while saving is ignored */
+const drvSend = (k, s, p, n, undo) => {
+  if (S.drvBusy) return toast('सेव हो रहा है… · Saving…');
+  S.drvBusy = 1;
+  const prev = S.drv.status[k];
+  if (s === 'Reset') delete S.drv.status[k]; else if (s !== 'Problem') S.drv.status[k] = { status: s, pax: p == null ? null : Number(p), at: Date.now(), by: 'Driver', note: n || '' };
+  renderDriver(); toast(s === 'Problem' ? '⚠️ डेस्क को बताया · Desk told' : s === 'Reset' ? 'OK' : '✓', undo);
+  google.script.run.withSuccessHandler(r => { S.drvBusy = 0; S.drv = r; drvKeep(r); renderDriver(); })
+    .withFailureHandler(e => { S.drvBusy = 0; if (prev) S.drv.status[k] = prev; else delete S.drv.status[k]; renderDriver(); toast('⚠️ सेव नहीं हुआ, फिर दबाएँ · Not saved, tap again'); })
+    .driverApp_status(PARAMS.d, k, s, p, n);
+};
+const dp = c => pname(c);
+
+function renderDriver() {
+  const r = S.drv; if (!r) return;
+  const cars = r.cars.filter(c => c.date === S.date), trips = r.duties.filter(d => d.date === S.date).sort((a, b) => a.report - b.report);
+  const now0 = Date.now(), open0 = trips.filter(d => !st(d).done && !stale(d));
+  const open = open0.filter((d, k) => st(d).st || !open0.slice(k + 1).some(n => n.report <= now0 + 15 * 60000)), d = open[0], desk = r.team.filter(t => t.role === 'Travel desk'), deskPh = desk.length ? desk[0].phone : '';
+  const car = cars.map(c => c.car.replace('Car ', 'Car ') + (c.reg ? ' · ' + c.reg : '')).join(' | ');
+  const top = `<div class="dtop"><div><b>${esc(car || 'My trips')}</b><small>${d === undefined ? '' : (trips.length - open.length + 1) + ' / ' + trips.length}</small></div>
+    <span>${deskPh ? `<a class="ic call" href="tel:+${digits(deskPh)}" title="Desk">📞</a>` : ''}<button class="ic" id="list" title="Trips">☰</button></span></div>`;
+  let main;
+  if (!d) {
+    const nd = r.duties.filter(x => x.date > S.date).sort((a, b) => a.report - b.report)[0];
+    main = `<div class="dstate"><div class="big">🙏</div><h2>${trips.length ? 'आज का काम पूरा' : 'आज कोई ट्रिप नहीं'}</h2><p>${trips.length ? 'All trips done. Thank you!' : 'No trips today.'}</p>
+      ${nd ? `<p class="nx">अगली ट्रिप · Next: <b>${dayLabel(nd.date)} ${hm(nd.report)}</b> ${esc(dp(nd.from))}</p>` : ''}</div>`;
+  } else {
+    const i = st(d), s = i.st, now = Date.now();
+    const phase = s === 'Guests in car' ? 'drop' : s === 'At pickup' ? 'load' : 'go';
+    const nx = phase === 'go' ? 'At pickup' : phase === 'load' ? 'Guests in car' : 'Dropped';
+    const place = phase === 'drop' ? d.to : d.from;
+    const title = phase === 'go' ? ['लेने जाएँ', 'Go to pickup'] : phase === 'load' ? ['मेहमान बैठाएँ', 'Pick up guests'] : ['छोड़ने जाएँ', 'Drop guests'];
+    const btn = phase === 'go' ? ['पहुँच गया', 'I have arrived'] : phase === 'load' ? ['सब बैठ गए · चलें', 'Everyone in · Start'] : ['छोड़ दिया', 'Dropped'];
+    const when = phase === 'go' ? hm(d.report) : phase === 'drop' && i.etaMs ? '~' + hm(i.etaMs) : hm(d.leave);
+    const whenL = phase === 'go' ? 'तक पहुँचें · be there by' : phase === 'load' ? 'निकलना है · leave at' : 'पहुँचेंगे · reach by';
+    const wait = phase === 'go' && d.report - now > 45 * 60000 ? `<div class="wait">⏳ ${dur(d.report - now)} बाकी · free till ${hm(d.report - (drive(lastPlace2(d), d.from) + 10) * 60000)}</div>` : '';
+    const sch = schedTime(d);
+    const chips = [`👥 ${d.pax}`].concat(sch ? [sch] : [], d.hampers && phase !== 'drop' ? [`🎁 ${d.hampers} हैम्पर दें`] : [], /standby/.test(d.type) && phase === 'drop' ? ['⏳ वहीं रुकें · wait there'] : []);
+    const guests = phase !== 'drop' && d.guests.length ? `<div class="dg">${d.guests.map(g => `<div><span>${esc(g.name.split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' '))}</span>${okPhone(g.phone) ? `<a class="ic call sm2" href="tel:+${digits(g.phone)}">📞</a>` : ''}</div>`).join('')}</div>`
+      : phase !== 'drop' && d.event ? '<div class="dg"><div><span class="mut">कोऑर्डिनेटर लोग बैठाएँगे · coordinator will send people</span></div></div>' : '';
+    main = `<div class="dstate ${i.late && !i.done ? 'late' : ''}">
+      <div class="ph">${bi(title[0], title[1])}</div>
+      <div class="dplace">${esc(dp(place))}</div>
+      <div class="dwhen"><b>${when}</b><small>${whenL}</small></div>
+      ${wait}
+      <div class="chips2">${chips.map(c => `<span>${c}</span>`).join('')}</div>
+      ${guests}
+      <a class="btn nav" target="_blank" href="${plink(place)}">🧭 ${bi('रास्ता', 'Navigate')}</a>
+      ${phase === 'drop' ? '' : `<div class="dto">➜ ${esc(dp(d.to))}</div>`}
+    </div>
+    <div class="dbot"><button class="btn pri dgo" data-go="${esc(d.key)}" data-st="${nx}">${bi(btn[0], btn[1])}</button>
+      <button class="dprob" data-prob="${esc(d.key)}">⚠️ दिक्कत · Problem</button></div>`;
+  }
+  $('#app').innerHTML = `<div class="dwrap">${top}${main}</div>`;
+  $('#list').onclick = () => sheet(`<h3>${dayLabel(S.date)}</h3>${trips.map(x => { const k = st(x); return `<div class="mini ${k.done ? 'mut' : ''}"><span><b>${hm(x.report)}</b> ${esc(dp(x.from))} ➜ ${esc(dp(x.to))}</span><span>${k.done ? '✓' : '👥 ' + x.pax}</span></div>`; }).join('') || '<div class="meta">—</div>'}
+    ${[...new Set(r.cars.map(c => c.date))].length > 1 ? `<div class="chips" style="margin-top:12px">${[...new Set(r.cars.map(c => c.date))].sort().map(x => `<span data-dd="${x}" class="${x === S.date ? 'on' : ''}">${x === today() ? 'आज' : dayLabel(x)}</span>`).join('')}</div>` : ''}
+    <button class="btn ghost" style="width:100%;margin-top:10px" data-close>OK</button>`, () => $$('[data-dd]').forEach(b => b.onclick = () => { S.date = b.dataset.dd; closeSheet(); renderDriver(); }));
+  $$('[data-go]').forEach(b => b.onclick = () => {
+    if (!S.share) { S.share = true; store.set('la_share', '1'); startShare(); }
+    const x = trips.find(t => t.key === b.dataset.go), stx = b.dataset.st;
+    const prev = r.status[x.key] ? Object.assign({}, r.status[x.key]) : null;
+    drvSend(x.key, stx, stx === 'Guests in car' ? x.pax : null, '', () => prev ? drvSend(x.key, prev.status, prev.pax, prev.note) : drvSend(x.key, 'Reset', null, ''));
+  });
+  $$('[data-prob]').forEach(b => b.onclick = () => sendStep(trips.find(t => t.key === b.dataset.prob), 'Problem', drvSend));
+}
+function lastPlace2(d) { const p = S.drv.duties.filter(o => o.date === d.date && o.reach <= d.report && o.key !== d.key).sort((a, b) => b.reach - a.reach)[0]; return p ? p.to : d.from; }
+let watchId = null, lastPing = 0;
+function startShare() {
+  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  if (!S.share || !navigator.geolocation) return;
+  watchId = navigator.geolocation.watchPosition(p => {
+    if (Date.now() - lastPing < 90000) return; lastPing = Date.now();
+    google.script.run.withFailureHandler(() => {}).driverApp_ping(PARAMS.d, p.coords.latitude, p.coords.longitude, p.coords.accuracy);
+  }, () => {}, { enableHighAccuracy: true, maximumAge: 60000 });
+}
+
+/* ---------- start ---------- */
+if (DRIVER) {
+  S.share = store.get('la_share') === '1';
+  loadDriver(); setInterval(() => { if (!document.hidden && !$('.ov')) loadDriver(true); }, 60000); startShare();
+} else {
+  if (PARAMS.c || PARAMS.s) {
+    /* personal link (c) or saved sign-in (s): no PIN needed */
+    S.pin = PARAMS.c ? 'C:' + PARAMS.c : 'S:' + PARAMS.s;
+    const known = store.get('la_pin') === S.pin && store.get('la_who');
+    const cached = known && readCache();
+    if (cached) { S.who = store.get('la_who'); afterLogin(cached); call('logiApp_load', [S.pin], r => { apply(r); }, true); }
+    else call('logiApp_whoami', [S.pin], name => { S.who = name || 'Team'; store.set('la_pin', S.pin); store.set('la_who', S.who); call('logiApp_load', [S.pin], r => { saveCache(r); afterLogin(r); }); });
+  } else {
+    S.pin = store.get('la_pin'); S.who = store.get('la_who');
+    if (S.pin.indexOf('S:') === 0) keepUrl({ app: 'logistics', s: S.pin.slice(2) });
+    else if (S.pin.indexOf('C:') === 0) keepUrl({ app: 'logistics', c: S.pin.slice(2) });
+    else if (S.pin && S.who) call('logiApp_session', [S.pin, S.who], tok => { S.pin = 'S:' + tok; store.set('la_pin', S.pin); keepUrl({ app: 'logistics', s: tok }); }, true);   /* old plain-PIN sign-in: upgrade to a link sign-in */
+    const cached = S.pin && S.who && readCache();
+    if (cached) { afterLogin(cached); call('logiApp_load', [S.pin], r => { apply(r); }, true); }
+    else if (S.pin && S.who) call('logiApp_load', [S.pin], r => { saveCache(r); afterLogin(r); }); else renderLogin();
+  }
+}
+</script>
+</body>
+</html>
