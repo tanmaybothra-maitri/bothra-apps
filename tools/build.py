@@ -43,6 +43,7 @@ def build(folder, src, app, name, icon):
     html = re.sub(r'<html[^>]*>', '<html lang="en" data-app="%s">' % app, html, count=1)
     html = re.sub(r'<meta name="viewport"[^>]*>\s*', '', html)
     html = re.sub(r'<meta name="theme-color"[^>]*>\s*', '', html)
+    html = re.sub(r'<title>[^<]*</title>\s*', '', html)
     head = '\n'.join([
         '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
         '<title>%s</title>' % name,

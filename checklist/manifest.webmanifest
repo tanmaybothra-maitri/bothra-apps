@@ -1,0 +1,30 @@
+{
+  "name": "Checklist",
+  "short_name": "Checklist",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#5a3e9e",
+  "theme_color": "#5a3e9e",
+  "icons": [
+    {
+      "src": "../icons/checklist-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icons/checklist-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../icons/checklist-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
