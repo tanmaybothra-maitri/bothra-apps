@@ -11,7 +11,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="My trips">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<script src="../shared/bridge.js?v=cd908760"></script>
+<script src="../shared/bridge.js?v=537cf681"></script>
 <base target="_top">
 <meta charset="utf-8">
 <style>
@@ -208,6 +208,34 @@
   .gmr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed var(--line);font-size:14px}
   .btn.off{opacity:.5;pointer-events:none} .done1{text-align:center;color:var(--grn);font-weight:700;padding:8px}
   .tag.warn{background:var(--red2);color:var(--red)}
+  /* travel desk v3: place-based Now screen */
+  .hd .plc{flex:1;min-width:0;text-align:left;background:none;border:0;color:#fff;font-size:20px;font-weight:800;padding:2px 0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .hd .plc small{font-size:13px;opacity:.8}
+  .hd .sub{font-size:12.5px;opacity:.85;margin-top:2px}
+  .tc{background:#fff;border:1px solid var(--line);border-radius:16px;margin:8px 0;box-shadow:var(--sh);padding:12px 14px;cursor:pointer}
+  .tc.r{border-left:5px solid var(--red)}
+  .flag{color:var(--red);font-weight:700;font-size:13.5px;margin-bottom:6px}
+  .tt{display:flex;align-items:baseline;gap:8px} .tt .tm{font-size:22px} .tt .dir{font-weight:700;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dtag{margin-left:auto;flex-shrink:0;font-size:12px;font-weight:700;padding:3px 8px;border-radius:999px} .dtag.out{background:var(--pri2);color:var(--pri)} .dtag.in{background:var(--blu2);color:var(--blu)}
+  .gn{margin-top:5px;font-size:14.5px}
+  .dr{display:flex;align-items:center;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #eceee9}
+  .dr .mid{flex:1;min-width:0}
+  .dst{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis} .dst.grn{color:var(--grn)} .dst.blu{color:var(--blu)} .dst.red{color:var(--red)} .dst.mut{color:var(--mut);font-weight:500}
+  .dst.big{font-size:14px;margin:6px 0 4px;white-space:normal}
+  .call2{flex-shrink:0;background:var(--grn);color:#fff;border-radius:999px;padding:9px 14px;font-weight:700;font-size:14px;text-decoration:none}
+  .cn.cab{background:#fff4dd;font-size:18px}
+  .msgc{background:var(--amb2);border-radius:14px;padding:10px 12px;margin:8px 0} .msgc.ok{background:var(--grn2)}
+  .msgc .mh{font-weight:700;font-size:14px;margin-bottom:6px}
+  .mrow{display:grid;grid-template-columns:1fr 1fr;gap:8px} .mrow button{border:0;background:#fff;border-radius:10px;padding:9px 10px;text-align:left;font-size:13.5px;cursor:pointer;color:var(--ink)} .mrow b{font-size:16px} .mrow .red{color:var(--red);font-weight:600}
+  .pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+  .pchip{background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:16px 8px;font-weight:700;font-size:15px;cursor:pointer;color:var(--ink)} .pchip small{display:block;font-weight:500;color:var(--mut);font-size:12px;margin-top:3px}
+  .pchip.on{border-color:var(--pri);background:var(--pri2);color:var(--pri)}
+  .tacts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0} .tacts .btn{font-size:13.5px;padding:8px}
+  .xtra{display:flex;align-items:center;justify-content:space-between;margin:10px 2px} .stp{display:flex;align-items:center;gap:12px} .stp button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:20px;cursor:pointer} .stp b{font-size:20px;min-width:24px;text-align:center}
+  .fr.gone .t2{text-decoration:line-through;color:var(--mut)} .ic.nc{font-size:14px}
+  details.more summary.lat{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--mut);font-weight:600;text-transform:none;font-size:14px;margin:12px 0 4px} details.more summary.lat b{margin-left:auto;color:var(--ink)} details.more summary.lat.dim{background:transparent}
+  .empty.sm{padding:14px 10px;font-size:14px}
+  .chips.st2 span{font-size:13px}
+  .ic.wa.sent{background:#fff;color:var(--grn);border-color:var(--grn);font-weight:800} .ic.off2{opacity:.4;background:#fff;color:var(--mut);border-color:var(--line)}
 </style>
 </head>
 <body>
@@ -349,6 +377,14 @@ function call(fn, args, ok, quiet) {
   google.script.run.withSuccessHandler(r => { if (!quiet) loading(false); ok(r); })
     .withFailureHandler(e => { if (!quiet) loading(false); unlockBtns(); if (/PIN/.test(e.message)) { S.pin = ''; store.set('la_pin', ''); renderLogin(e.message); } else if (!quiet) toast('⚠️ ' + e.message); })[fn].apply(null, args);
 }
+/* Saves without making anyone wait: the change shows at once, the save runs in the background,
+   and the full plan reloads quietly afterwards. A failed save puts the plan back and says so. */
+function saveBg(fn, args, okMsg) {
+  S.pend = (S.pend || 0) + 1; render(); toast('Saving in the background…');
+  const reload = () => google.script.run.withSuccessHandler(r => { if (!S.pend) apply(r); }).withFailureHandler(() => {}).logiApp_load(S.pin);
+  google.script.run.withSuccessHandler(r => { S.pend--; toast(okMsg); if (r && r.base) apply(r); else reload(); })
+    .withFailureHandler(e => { S.pend--; toast('⚠️ Not saved: ' + e.message); reload(); })[fn].apply(null, args);
+}
 function apply(r) { if (r.base) S.base = r.base; if (r.live) S.live = r.live; if (!S.date) S.date = pickDate(); saveCache(r); render(); }
 /* last data kept on the phone so the app opens instantly; fresh data replaces it a moment later */
 function saveCache(r) { try { if (r.base) localStorage.setItem('la_base', JSON.stringify(r.base)); if (r.live) localStorage.setItem('la_live', JSON.stringify(r.live)); } catch (e) {} }
@@ -368,7 +404,7 @@ function renderLogin(msg) {
   $('#go').onclick = go; $('#pin').onkeydown = e => { if (e.key === 'Enter') go(); };
 }
 let pollT = null;
-function startPoll() { clearInterval(pollT); pollT = setInterval(() => { if (document.hidden || S.busy || $('.ov') || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; call('logiApp_poll', [S.pin, S.base && S.base.version], apply, true); }, 30000); }
+function startPoll() { clearInterval(pollT); pollT = setInterval(() => { if (document.hidden || S.busy || S.pend || $('.ov') || document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) return; call('logiApp_poll', [S.pin, S.base && S.base.version], apply, true); }, 30000); }
 
 /* ---------- Cars ---------- */
 const CAR_FIELDS = [['reg', 'Car number', 'GJ 01 AB 1234'], ['model', 'Model', 'Ertiga'], ['driver', 'Driver name', ''], ['phone', 'Driver phone', '98xxxxxxxx'], ['seats', 'Seats', '6'], ['lug', 'Seats with luggage', '4'], ['source', 'Own / hired', 'HIRED'], ['owner', 'Owner / vendor', ''], ['ownerPhone', 'Vendor phone', ''], ['rate', 'Rate', ''], ['notes', 'Notes', '']];
@@ -439,7 +475,8 @@ function viewPlan() {
       $$('[data-savej]').forEach(b => b.onclick = () => {
         const g = groups[keys[Number(b.dataset.savej)]];
         const items = g.map((l, li) => ({ id: l.id, name: l.name, leg: l.leg, car: $(`[data-leg="${b.dataset.savej}:${li}"]`).value })).filter((it, li) => it.car !== g[li].car);
-        call('logiApp_mapGuests', [S.pin, items], r => { apply(r); toast('✓ Saved - clashes are re-checked'); });
+        items.forEach(it => S.base.legs.forEach(l => { if (l.id === it.id && l.leg === it.leg && l.date === S.date) l.car = it.car; }));
+        saveBg('logiApp_mapGuests', [S.pin, items], '✓ Saved - clashes are re-checked');
       });
     } };
   }
@@ -511,7 +548,6 @@ const homeName = (date, car) => { const o = carInfo(date, car).owner || carInfo(
 const ownLeft = (date, from, to) => Object.keys(statusMap()).filter(k => k.indexOf('OWN|' + date + '|' + from + '|' + to + '|') === 0).reduce((a, k) => a + (Number(statusMap()[k].pax) || 0), 0);
 const stale = d => { const i = st(d); if (i.done) return false; const now = Date.now(); if (i.st === 'Guests in car') return now > (i.etaMs || d.reach) + 60 * 60000; return !i.st && now > d.busy + 45 * 60000; };
 const isGone = d => { const s = statusMap()[d.key]; return !!s && (s.status === 'Guests in car' || s.status === 'Dropped'); };
-const paxOf = d => { const s = statusMap()[d.key]; return s && s.pax != null ? s.pax : d.pax; };
 const etaOf = d => st(d).etaMs || d.reach;
 function schedTime(d) {
   const g = d.guests.find(x => /(arr|dep) \d\d:\d\d/.test(x.trip));
@@ -521,8 +557,9 @@ function schedTime(d) {
 }
 
 function afterLogin(r) {
-  S.base = r.base; S.live = r.live; S.date = pickDate(); S.loc = store.get('la_loc') || 'ALL'; S.tab = 'out'; S.q = ''; S.open = {}; S.admin = null;
+  S.base = r.base; S.live = r.live; S.date = pickDate(); S.loc = store.get('la_loc') || 'ALL'; S.q = ''; S.open = {}; S.admin = null;
   startPoll(); render();
+  if (!store.get('la_place_set')) placeSheet(true);   /* where are you? - asked once */
 }
 function render() {
   if (DRIVER) return renderDriver();
@@ -592,37 +629,417 @@ function lastPlace(car, date, t) {
   return p ? p.to : '';
 }
 
-/* ---------- card ---------- */
-function ccard(d, dir) {
-  const i = st(d), c = carInfo(d.date, d.car), a = act(d, dir), open = S.open[d.key];
-  const cl = clashesOf(d);
-  const t = dir === 'in' ? etaOf(d) : d.leave;
-  const sch = schedTime(d);
-  const route = dir === 'in' ? 'from ' + sp(d.from) : 'to ' + sp(d.to);
-  const pill = cl.length ? '<span class="dot bad">Clash</span>' : i.prob ? '<span class="dot bad">Problem</span>' : i.late && !i.done ? '<span class="dot bad">Late</span>' : i.st === 'At pickup' ? '<span class="dot amb">Here</span>' : i.st === 'Guests in car' ? '<span class="dot blu">On road</span>' : i.done ? '<span class="dot grn">' + esc(i.pill) + '</span>' : '';
-  const ph = okPhone(c.phone) ? `<a class="ic call" href="tel:+${digits(c.phone)}" onclick="event.stopPropagation()">📞</a>` : '<span class="ic off">📞</span>';
-  const where = S.live.where[d.date + '|' + d.car], home = isHome(d.date, d.car);
-  return `<div class="cc ${cl.length || i.prob || (i.late && !i.done) ? 'late' : ''} ${i.done ? 'dim' : ''}">
-    <div class="m" data-tog="${esc(d.key)}">
-      <div class="cn ${home ? 'home' : ''}">${esc(d.car.replace('Car ', ''))}<small>${home ? 'family' : 'car'}</small></div>
-      <div class="mid"><div class="t">${hm(t)} <span class="s">${esc(route)}</span></div>
-        <div class="s">${[sch, c.reg ? esc(c.reg) : '', S.loc === 'ALL' || locOf(S.loc)[2].length > 1 ? esc(sp(dir === 'in' ? d.to : d.from)) : ''].filter(Boolean).join(' · ')}</div></div>
-      <div class="rt"><div class="px">👥 ${paxOf(d)}</div>${home ? '<span class="dot amb">🏠 ' + esc(homeName(d.date, d.car)) + '</span>' : pill}</div>
-    </div>
-    ${dir === 'in' && !home && !i.done ? (nx => `<div class="nx2">${nx ? 'Next: <b>' + hm(nx.leave) + '</b> ' + esc(sp(nx.from)) + ' → ' + esc(sp(nx.to)) + (nx.from !== d.to ? ' <span class="mut">(drive ' + drive(d.to, nx.from) + 'm)</span>' : '') : 'Free after this'}</div>`)(nextOfCar(d)) : ''}
-    ${cl.length ? `<div class="clw">⚠ Car ${esc(d.car.replace('Car ', ''))} is also on ${cl.map(o => hm(o.leave) + ' ' + esc(sp(o.from)) + '→' + esc(sp(o.to))).join(', ')}</div>` : ''}
-    ${open ? `<div class="x">
-      <div class="xr"><span>Driver</span><span><b>${esc(c.driver || '—')}</b> <span class="mut">${esc(c.phone || '')}</span></span></div>
-      <div class="xr"><span>Trip</span><span><b>${esc(sp(d.from))} ${hm(d.leave)} → ${esc(sp(d.to))} ${hm(d.reach)}</b></span></div>
-      ${d.event ? `<div class="xr"><span>Round</span><b>${esc(d.trip.replace(/^E\d+ \S+ - /, '').replace(/ \(.*\)$/, ''))}</b></div>` : d.trip ? `<div class="xr"><span>${d.from === 'AIR' || d.to === 'AIR' ? 'Flight' : 'Train'}</span><span><b>${esc(d.trip)}</b>${d.track ? ` <a href="${esc(d.track)}" target="_blank">live ↗</a>` : ''}</span></div>` : ''}
-      ${d.hampers ? `<div class="xr"><span>Hampers</span><b>${d.hampers}</b></div>` : ''}
-      ${where ? `<div class="xr"><span>Location</span><a href="${mapAt(where.lat, where.lng)}" target="_blank">📍 ${ago(where.at)}</a></div>` : ''}
-      ${i.s && i.s.by ? `<div class="xr"><span>Update</span><span><b>${esc(i.st)}</b> <span class="mut">${esc(i.s.by.replace(/^(Desk|Driver): /, ''))} · ${ago(i.s.at)}${i.s.note ? ' · ' + esc(i.s.note) : ''}</span></span></div>` : ''}
-      ${d.guests.map(g => `<div class="gx"><span>${esc(g.name)}</span>${okPhone(g.phone) ? `<a class="ic sm2" href="tel:+${digits(g.phone)}">📞</a>` : ''}</div>`).join('')}
-    </div>` : ''}
-    <div class="ab">${ph}${d.guests.length ? `<button class="ic" data-gs="${esc(d.key)}" title="Guests">👤</button>` : ''}${home ? `<span class="hnote">Family car · not tracked</span>` : `<button class="ic" data-edit="${esc(d.key)}" title="Edit">✎</button>`}${home ? '' : a ? `<button class="btn pri go ${S.inf && S.inf[d.key] ? 'busyb' : ''}" data-act="${esc(d.key)}" data-st="${a[0]}">${a[1]}</button>` : `<button class="btn go" data-edit="${esc(d.key)}">Done · ${hm((i.s || {}).at)}</button>`}</div>
-  </div>`;
+/* ---------- trip facts used on every card ---------- */
+const isCab = d => /^Cab /.test(d.car || '');
+const recJ = k => { const s = S.live.status[k]; if (!s) return null; let o = {}; try { o = JSON.parse(s.note || '{}') || {}; } catch (e) {} return Object.assign({ at: s.at, by: s.by, pax: s.pax }, o); };
+const cabOf = d => { const s = S.live.status['CAB|' + d.key]; return s && s.status === 'Booked' ? recJ('CAB|' + d.key) : null; };
+const hcOf = d => { const s = S.live.status['PAX|' + d.key]; return s && s.status === 'Headcount' ? recJ('PAX|' + d.key) : null; };
+const roomOf = g => (S.base.rooms || {})[g.id] || '';
+const gIn = d => { const h = hcOf(d), out = h && h.out || []; return d.guests.filter(g => out.indexOf(g.id) < 0); };
+const paxOf = d => { const h = hcOf(d); if (h && !d.event) return gIn(d).reduce((a, g) => a + (g.pax || 1), 0) + (Number(h.extra) || 0); const s = statusMap()[d.key]; return s && s.pax != null ? s.pax : d.pax; };
+const roundName = d => String(d.trip || '').replace(/^E\d+ \S+ - /, '').replace(/ \(.*\)$/, '') || 'Shuttle';
+const whereOf = d => S.live.where[d.date + '|' + d.car] || null;
+const seenRecent = d => { const w = whereOf(d); return w && w.at && Date.now() - w.at < 45 * 60000 ? w : null; };
+/* the driver uses the app today: any tap or location from him on this day */
+const usesApp = (date, car) => { const w = S.live.where[date + '|' + car]; return !!(w && w.at) || S.base.duties.some(o => o.date === date && o.car === car && S.live.status[o.key] && /^Driver/.test(S.live.status[o.key].by || '')); };
+const fullName = n => nameTc(n).replace(/\s+/g, ' ').trim();
+function namesLine(d) {
+  if (d.event) return 'Shuttle · ' + esc(roundName(d));
+  const g = gIn(d).map(x => fullName(x.name)), extra = (hcOf(d) || {}).extra || 0;
+  if (!g.length && !extra) return '<span class="mut">No guests</span>';
+  return esc(g.slice(0, 3).join(', ')) + (g.length > 3 ? ' +' + (g.length - 3) : '') + (extra ? ' +' + extra + ' extra' : '');
 }
+/* what the driver (or the cab) last told us */
+function drvState(d) {
+  if (isCab(d)) { const c = cabOf(d); return c ? { t: '🚕 ' + (c.svc || 'Cab') + ' booked' + (c.reg ? ' · ' + c.reg : ''), c: 'grn' } : { t: '🚕 Cab not booked yet', c: 'red' }; }
+  if (isHome(d.date, d.car)) return { t: '🏠 Family car', c: '' };
+  const s = statusMap()[d.key], w = seenRecent(d);
+  if (s) {
+    if (s.status === 'Dropped') return { t: '✓ Dropped ' + hm(s.at), c: 'grn' };
+    if (s.status === 'Guests in car') { const eta = s.at + drive(d.from, d.to) * 60000; return { t: '🚗 Guests in · reaches ~' + hm(eta), c: 'blu' }; }
+    if (s.status === 'At pickup') return { t: '📍 At pickup since ' + hm(s.at), c: 'grn' };
+    if (s.status === 'On the way') return { t: '🚗 Started ' + hm(s.at) + (w ? ' · seen ' + ago(w.at) : ''), c: 'blu' };
+    if (s.status === 'Problem') return { t: '⚠ ' + (s.note || 'Problem'), c: 'red' };
+    if (s.status === 'Cancelled') return { t: 'Cancelled', c: '' };
+  }
+  if (w) return { t: '📍 Driver seen ' + ago(w.at), c: '' };
+  return { t: 'No update from driver', c: 'mut' };
+}
+function drvRow(d, attr) {
+  const c = carInfo(d.date, d.car), cab = isCab(d), cb = cab ? cabOf(d) : null, x = drvState(d);
+  const name = cab ? (cb && cb.driver ? cb.driver : 'Cab') : (c.driver ? c.driver.split(' ').slice(0, 2).join(' ') : '<span style="color:var(--red)">No driver</span>');
+  const ph = cab ? (cb && cb.phone) : c.phone;
+  return `<div class="dr" ${attr || ''}><div class="cn sm ${cab ? 'cab' : isHome(d.date, d.car) ? 'home' : ''}">${cab ? '🚕' : esc(d.car.replace(/^Car /, ''))}</div>
+    <div class="mid"><div class="t2">${cab ? esc(name) : name} <span class="mut" style="font-weight:500">${esc(cab ? (cb && cb.reg || '') : c.reg || '')}</span></div><div class="dst ${x.c}">${esc(x.t)}</div></div>
+    ${okPhone(ph) ? `<a class="call2" href="tel:+${digits(ph)}" onclick="event.stopPropagation()">📞 Call</a>` : ''}</div>`;
+}
+/* direction of a trip as seen from the chosen place */
+function dirOf(d, L) { if (L === 'ALL') return ''; return inLoc(d.from, L) ? 'out' : inLoc(d.to, L) ? 'in' : ''; }
+const tOf = (d, dir) => dir === 'in' ? etaOf(d) : d.leave;
+function routeTxt(d, dir) { return dir === 'out' ? 'to ' + esc(sp(d.to)) : dir === 'in' ? 'from ' + esc(sp(d.from)) : esc(sp(d.from)) + ' → ' + esc(sp(d.to)); }
+const dirTag = dir => dir === 'out' ? '<span class="dtag out">⬆ Leaves</span>' : dir === 'in' ? '<span class="dtag in">⬇ Arrives</span>' : '';
+function subLine(d) {
+  const x = [];
+  const sch = schedTime(d); if (sch) x.push(sch + (d.guests[0] && d.guests[0].trip ? ' ' + esc(d.guests[0].trip.replace(/ \(.*$/, '').split(' ').slice(0, 3).join(' ')) : ''));
+  if (d.hampers) x.push('🎁 ' + d.hampers);
+  return x.length ? `<div class="s">${x.join(' · ')}</div>` : '';
+}
+function tripCard(d, dir, flag) {
+  const red = !!flag;
+  return `<div class="tc ${red ? 'r' : ''}" data-trip="${esc(d.key)}">
+    ${flag ? `<div class="flag">${flag}</div>` : ''}
+    <div class="tt"><span class="tm">${hm(tOf(d, dir))}</span><span class="dir">${routeTxt(d, dir)}</span>${dirTag(dir)}</div>
+    <div class="gn">${namesLine(d)} <span class="mut">· ${paxOf(d)} ${paxOf(d) === 1 ? 'person' : 'people'}</span></div>${subLine(d)}
+    ${drvRow(d)}</div>`;
+}
+/* an event round = several cars leaving together: one card, one row per car */
+function roundCard(list, dir) {
+  const d = list[0], pax = list.reduce((a, x) => a + paxOf(x), 0);
+  return `<div class="tc">
+    <div class="tt"><span class="tm">${hm(tOf(d, dir))}</span><span class="dir">${routeTxt(d, dir)}</span>${dirTag(dir)}</div>
+    <div class="gn">Shuttle · ${esc(roundName(d))} <span class="mut">· ${pax} people · ${list.length} car${list.length > 1 ? 's' : ''}</span></div>
+    ${list.sort((a, b) => a.car.localeCompare(b.car, undefined, { numeric: true })).map(x => drvRow(x, `data-trip="${esc(x.key)}"`)).join('')}</div>`;
+}
+/* cards for a list of trips, event cars of the same round grouped */
+function cardsOf(list, L) {
+  const out = [], seen = {};
+  list.forEach(d => {
+    const dir = dirOf(d, L);
+    if (d.event) {
+      const k = [d.date, d.from, d.to, d.leave].join('|');
+      if (seen[k]) return; seen[k] = 1;
+      const same = list.filter(x => x.event && [x.date, x.from, x.to, x.leave].join('|') === k);
+      out.push(same.length > 1 ? roundCard(same, dir) : tripCard(d, dir));
+    } else out.push(tripCard(d, dir));
+  });
+  return out.join('');
+}
+
+/* ---------- what needs someone now ---------- */
+const CAB_BOOK_MIN = 45, CAB_LATE_MIN = 10;
+function needsYou(L, isToday) {
+  const now = Date.now(), ds = S.base.duties.filter(d => d.date === S.date), items = [];
+  const here = d => L === 'ALL' || inLoc(d.from, L) || inLoc(d.to, L);
+  const live = d => { const s = statusMap()[d.key]; return !(s && (s.status === 'Dropped' || s.status === 'Cancelled')); };
+  const soon = d => !isToday || d.report <= now + 3 * 3600000;
+  const recent = d => !isToday || d.busy > now - 20 * 60000;
+  ds.filter(d => here(d) && live(d) && recent(d)).forEach(d => {
+    const s = statusMap()[d.key];
+    if (isCab(d) && !cabOf(d) && isToday && (L === 'ALL' || inLoc(d.from, L)) && d.report - now <= CAB_BOOK_MIN * 60000 && d.report > now - 30 * 60000) {
+      const late = d.report - now <= CAB_LATE_MIN * 60000;
+      items.push({ t: d.report - 1, d, flag: late ? '🚕 Late - book the cab now · pickup ' + hm(d.report) : '🚕 Book cab now · pickup ' + hm(d.report) });
+    } else if (s && s.status === 'Problem') items.push({ t: d.report, d, flag: '⚠ Driver reported: ' + esc(s.note || 'problem') });
+    else if (soon(d) && !isCab(d) && clashesOf(d).length) items.push({ t: d.report, d, flag: '⚠ Car ' + esc(d.car.replace('Car ', '')) + ' is also on ' + clashesOf(d).map(o => hm(o.leave) + ' ' + esc(sp(o.from)) + '→' + esc(sp(o.to))).join(', ') });
+    else if (isToday && !isCab(d) && !isHome(d.date, d.car) && !s && usesApp(d.date, d.car) && now > d.report && now < d.leave + 60 * 60000 && (L === 'ALL' || inLoc(d.from, L)))
+      items.push({ t: d.report, d, flag: '⏰ Driver has not started · should be at ' + esc(sp(d.from)) + ' by ' + hm(d.report) });
+    else if (L === 'ALL' && soon(d) && !isCab(d) && !isHome(d.date, d.car) && !(carInfo(d.date, d.car).driver && okPhone(carInfo(d.date, d.car).phone)))
+      items.push({ t: d.report, d, flag: '👤 ' + esc(d.car) + ' has no driver / phone yet', drv: 1 });
+  });
+  const seen = {};
+  const trips = items.filter(i => { if (i.drv) { const k = i.d.car; if (seen[k]) return false; seen[k] = 1; } return true; });
+  const nocar = unmapped(S.date).filter(j => (L === 'ALL' || inLoc(j.from, L) || inLoc(j.to, L)) && (!isToday || (j.report <= now + 3 * 3600000 && j.reach > now - 30 * 60000)));
+  return { trips: trips.sort((a, b) => a.t - b.t), nocar };
+}
+function noCarCard(j, L) {
+  const dir = L === 'ALL' ? '' : inLoc(j.from, L) ? 'out' : 'in', t = dir === 'in' ? j.reach : j.leave;
+  return `<div class="tc r"><div class="flag">🚫 No car yet</div>
+    <div class="tt"><span class="tm">${hm(t)}</span><span class="dir">${dir === 'out' ? 'to ' + esc(sp(j.to)) : dir === 'in' ? 'from ' + esc(sp(j.from)) : esc(sp(j.from)) + ' → ' + esc(sp(j.to))}</span>${dirTag(dir)}</div>
+    <div class="gn">${esc(j.legs.slice(0, 3).map(l => fullName(l.name)).join(', '))}${j.legs.length > 3 ? ' +' + (j.legs.length - 3) : ''} <span class="mut">· ${j.pax} people</span></div>
+    ${j.train ? `<div class="s">${j.from === 'AIR' || j.to === 'AIR' ? '✈' : '🚆'} ${esc(j.train)}${j.time ? ' ' + esc(j.time) : ''}</div>` : ''}
+    <button class="btn pri" style="width:100%;margin-top:10px" data-asg="${esc(j.id)}">Give a car</button></div>`;
+}
+
+/* ---------- Now screen ---------- */
+function placeIcon(id) { const p = (S.base.places[id] || {}).type || ''; return id === 'ALL' ? '🖥' : id === 'STATION' ? '🚉' : id === 'HOTEL' || /hotel/i.test(p) ? '🏨' : id === 'VENUE' ? '🎉' : /home/i.test(p + ' ' + sp(id)) ? '🏠' : '📍'; }
+function placeLabel(id) { return id === 'ALL' ? 'Desk' : locOf(id)[1]; }
+function nowView() {
+  const L = S.loc, now = Date.now(), isToday = S.date === opDay(S.base.duties), q = (S.q || '').trim().toLowerCase();
+  const ds = S.base.duties.filter(d => d.date === S.date);
+  if (q) {
+    const num = /^\d+$/.test(q);
+    const hit = ds.filter(d => { if (num) return d.car === 'Car ' + Number(q); const c = carInfo(d.date, d.car); return [d.car, c.reg, c.driver].concat(d.guests.map(g => g.name)).join(' ').toLowerCase().indexOf(q) >= 0; }).sort((a, b) => a.report - b.report);
+    return hit.length ? hit.map(d => tripCard(d, dirOf(d, L))).join('') : '<div class="empty">No trips for “' + esc(S.q) + '”</div>';
+  }
+  const nd = needsYou(L, isToday), flagged = {};
+  nd.trips.forEach(i => flagged[i.d.key] = 1);
+  let h = deskCard();
+  const nN = nd.trips.length + nd.nocar.length;
+  if (nN) h += `<div class="sec red">⚠ Needs you <span class="n">${nN}</span></div>` +
+    nd.nocar.map(j => noCarCard(j, L)).concat(nd.trips.map(i => tripCard(i.d, dirOf(i.d, L), i.flag))).join('');
+  const mine = ds.filter(d => (L === 'ALL' || inLoc(d.from, L) || inLoc(d.to, L)) && !flagged[d.key])
+    .filter(d => { const s = statusMap()[d.key]; return !(s && s.status === 'Cancelled'); })
+    .sort((a, b) => tOf(a, dirOf(a, L)) - tOf(b, dirOf(b, L)));
+  if (!isToday) {
+    h += `<div class="sec">All trips · ${dayLabel(S.date)} <span class="n">${mine.length}</span></div>` + (cardsOf(mine, L) || '<div class="empty">No trips on this day</div>');
+    return h;
+  }
+  const gone = d => { const dir = dirOf(d, L), s = statusMap()[d.key]; if (s && s.status === 'Dropped') return true; return tOf(d, dir) < now - 20 * 60000 && !(s && s.status === 'Guests in car' && dir === 'in'); };
+  const open = mine.filter(d => !gone(d));
+  const next = open.filter(d => tOf(d, dirOf(d, L)) <= now + 60 * 60000), later = open.filter(d => next.indexOf(d) < 0), past = mine.filter(gone);
+  h += `<div class="sec">Next hour</div>` + (cardsOf(next, L) || `<div class="empty sm">Nothing in the next hour${later.length ? ' · next at ' + hm(tOf(later[0], dirOf(later[0], L))) : ''}</div>`);
+  if (later.length) h += `<details class="more" ${S.openLater ? 'open' : ''} id="later"><summary class="lat">Later today<b>${later.length} trip${later.length > 1 ? 's' : ''} ›</b></summary>${cardsOf(later, L)}</details>`;
+  if (past.length) h += `<details class="more" id="past"><summary class="lat dim">Earlier today<b>${past.length} ›</b></summary>${cardsOf(past.reverse(), L)}</details>`;
+  return h;
+}
+/* Desk only: tomorrow's (and today's leftover) driver links and guest messages */
+function drvKey(c, day) { return 'DRV|' + day + '|' + c.car + '|' + digits(c.phone).slice(-10); }
+function drvCars(day) { return S.base.cars.filter(c => c.date === day && !/HOME/i.test(c.source || '') && S.base.duties.some(d => d.date === day && d.car === c.car)).sort((a, b) => a.car.localeCompare(b.car, undefined, { numeric: true })); }
+function drvStats(day) { const cs = drvCars(day), ok = c => c.driver && okPhone(c.phone); return { all: cs.length, sent: cs.filter(c => ok(c) && S.live.status[drvKey(c, day)]).length, missing: cs.filter(c => !ok(c)).length }; }
+function deskCard() {
+  if (S.loc !== 'ALL') return '';
+  const ds = dates(), t = opDay(S.base.duties), next = ds.find(x => x > t), hour = Number(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', hour12: false, timeZone: TZ }));
+  const tomorrow = new Date(Date.parse(t + 'T12:00:00+05:30') + 86400000).toLocaleDateString('en-CA', { timeZone: TZ });
+  const days = [];
+  if (ds.indexOf(t) >= 0) { const g = msgStats(t, true); if (g.left + g.wait) days.push([t, 'Today']); }   /* today: only if guests still need their car details */
+  if (next && (next !== tomorrow || hour >= 12)) days.push([next, next === tomorrow ? 'Tomorrow' : dayLabel(next)]);
+  return days.map(([day, lbl]) => {
+    const g = msgStats(day, day === t), dv = drvStats(day), gDone = !(g.left + g.wait), dDone = dv.sent === dv.all;
+    if (day === t) return gDone ? '' : `<div class="msgc"><div class="mh">📩 Today: ${g.left + g.wait} guest${g.left + g.wait > 1 ? 's still need' : ' still needs'} car details</div><div class="mrow"><button data-gmb="${day}"><b>${g.sent}/${g.all}</b> guests${g.wait ? ` <span class="red">· ${g.wait} waiting</span>` : ''} ›</button></div></div>`;
+    return `<div class="msgc ${gDone && dDone ? 'ok' : ''}"><div class="mh">📩 ${lbl}'s messages${gDone && dDone ? ' · all sent ✓' : ''}</div>
+      <div class="mrow"><button data-dl="${day}"><b>${dv.sent}/${dv.all}</b> drivers${dv.missing ? ` <span class="red">· ${dv.missing} no driver</span>` : ''} ›</button>
+      <button data-gmb="${day}"><b>${g.sent}/${g.all}</b> guests${g.wait ? ` <span class="red">· ${g.wait} waiting</span>` : ''} ›</button></div></div>`;
+  }).join('');
+}
+
+function renderCoord() {
+  if (S.admin) return renderAdmin();
+  if (!locs().some(l => l[0] === S.loc)) S.loc = 'ALL';
+  const L = S.loc, y = window.scrollY;
+  const body = nowView();
+  $('#app').innerHTML = `${headerHtml()}
+    <main class="cm">${body}</main>${navHtml()}`;
+  wireHeader();
+  $$('[data-gmb]').forEach(b => b.onclick = () => guestMsgSheet(b.dataset.gmb));
+  $$('[data-dl]').forEach(b => b.onclick = () => driverLinksSheet(b.dataset.dl));
+  const um = unmapped(S.date);
+  $$('[data-asg]').forEach(b => b.onclick = e => { e.stopPropagation(); assignSheet(um.find(j => j.id === b.dataset.asg)); });
+  wireTripTaps();
+  $$('details.more').forEach(x => x.ontoggle = () => { if (x.id === 'later') S.openLater = x.open; });
+  window.scrollTo(0, y);
+}
+function wireTripTaps() {
+  $$('[data-trip]').forEach(b => b.onclick = e => { e.stopPropagation(); const d = S.base.duties.find(x => x.key === b.dataset.trip); if (d) tripSheet(d); });
+}
+function headerHtml() {
+  const L = S.loc, isToday = S.date === opDay(S.base.duties);
+  return `<div class="hd"><div class="hrow">
+      <button class="plc" id="plc">${placeIcon(L)} ${esc(placeLabel(L))} <small>▾</small></button>
+      <select id="day" class="hsel sm">${dates().map(d => `<option value="${d}" ${d === S.date ? 'selected' : ''}>${d === opDay(S.base.duties) ? 'Today' : dayLabel(d)}</option>`).join('')}</select>
+      <button class="ibtn" id="menu">⋯</button></div>
+    <div class="sub">${dayLabel(S.date)}${isToday ? ' · now ' + hm(Date.now()) : ''}${L === 'ALL' ? '' : ' · trips leaving and arriving here'}</div>
+    ${L === 'ALL' && !S.admin ? `<div class="srch"><input id="q" type="search" inputmode="search" placeholder="Search car no. or guest" value="${esc(S.q || '')}" autocomplete="off">${S.q ? '<button id="qx">✕</button>' : ''}</div>` : ''}</div>`;
+}
+function navHtml() {
+  const um = unmapped(S.date).length, cl = S.base.duties.filter(d => d.date === S.date && !isCab(d) && clashesOf(d).length).length;
+  return `<nav class="bn">${[['', '🕐', 'Now', 0], ['cars', '🚗', 'Cars', 0], ['plan', '📋', 'To plan', um + cl]].map(t =>
+    `<button data-sec="${t[0]}" class="${(S.admin || '') === t[0] ? 'on' : ''}"><b>${t[1]}</b>${t[2]}${t[3] ? `<i class="red">${t[3]}</i>` : ''}</button>`).join('')}</nav>`;
+}
+function wireHeader() {
+  $('#plc').onclick = () => placeSheet(false);
+  $('#day').onchange = e => { S.date = e.target.value; render(); window.scrollTo(0, 0); };
+  $('#menu').onclick = coordMenu;
+  $$('[data-sec]').forEach(b => b.onclick = () => { S.admin = b.dataset.sec || null; S.planFull = ''; render(); window.scrollTo(0, 0); });
+  const qi = $('#q');
+  if (qi) qi.oninput = e => { S.q = e.target.value; clearTimeout(S.qt); S.qt = setTimeout(() => { render(); const z = $('#q'); if (z) { z.focus(); z.setSelectionRange(z.value.length, z.value.length); } }, 250); };
+  if ($('#qx')) $('#qx').onclick = () => { S.q = ''; render(); };
+}
+/* where are you? asked once after sign-in, changeable from the header */
+function placeSheet(first) {
+  const opts = locs().filter(l => l[0] !== 'ALL').concat([['ALL', 'Desk', null]]);
+  sheet(`<h3>Where are you${first ? ' today' : ''}?</h3><div class="meta">You will see the cars leaving and arriving there. Desk sees everything.</div>
+    <div class="pgrid">${opts.map(l => `<button class="pchip ${l[0] === S.loc ? 'on' : ''}" data-pl="${l[0]}">${placeIcon(l[0])} ${esc(l[0] === 'ALL' ? 'Desk' : l[1])}<small>${l[0] === 'ALL' ? 'everything, all places' : l[0] === 'STATION' ? 'Kalupur · Sabarmati · Airport' : esc(pname(l[0]))}</small></button>`).join('')}</div>
+    ${first ? '' : '<button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>'}`, () => {
+    $$('[data-pl]').forEach(b => b.onclick = () => { S.loc = b.dataset.pl; store.set('la_loc', S.loc); store.set('la_place_set', '1'); S.q = ''; closeSheet(); S.admin = null; render(); window.scrollTo(0, 0); });
+  });
+  if (first) { const o = $('.ov'); if (o) o.onclick = null; }
+}
+
+/* ---------- one trip: everything needed on the floor ---------- */
+function tripText(d) {
+  const c = carInfo(d.date, d.car), L = ['🚗 *' + d.car + (c.reg ? ' · ' + c.reg : '') + '*', '🕐 *' + hm(d.report) + '* ' + pname(d.from) + ' ➜ ' + pname(d.to), ''];
+  const sch = schedTime(d), tr = d.guests[0] && d.guests[0].trip ? d.guests[0].trip.replace(/ \(.*$/, '') : '';
+  if (tr) L.push((d.from === 'AIR' || d.to === 'AIR' ? '✈ ' : '🚆 ') + tr + (sch ? ' ' + sch.replace(/^\S+ /, '') : ''));
+  L.push('👥 ' + paxOf(d) + (d.hampers ? ' · 🎁 ' + d.hampers : ''));
+  gIn(d).forEach(g => L.push('• ' + fullName(g.name) + (okPhone(g.phone) ? ' ' + ph10(g.phone) : '') + (roomOf(g) ? ' · Room ' + roomOf(g) : '')));
+  L.push('', '📍 ' + plink(d.from));
+  return L.join('\n');
+}
+function cabMsgText(d, g, c) {
+  return ['Namaste ' + fullName(g.name).split(' ')[0] + ' ji 🙏', '', '🚕 Your cab for *' + hm(d.report) + '* ' + pname(d.from) + ' ➜ ' + pname(d.to) + ' is booked.', '',
+    (c.svc ? c.svc + ' · ' : '') + (c.reg ? 'Car *' + c.reg + '*' : ''), c.driver || c.phone ? '👤 Driver: ' + (c.driver || '') + (c.phone ? ' · ' + ph10(c.phone) : '') : '', c.link ? '📍 Track: ' + c.link : ''].filter((x, i) => x || i < 4).join('\n');
+}
+function tripSheet(d) {
+  const c = carInfo(d.date, d.car), x = drvState(d), cab = isCab(d), cb = cab ? cabOf(d) : null, w = whereOf(d), i = st(d), hc = hcOf(d) || {};
+  const outIds = (hc.out || []).slice(); let extra = Number(hc.extra) || 0;
+  const wv = d.event ? S.base.waves.find(v => v.date === d.date && v.from === d.from && v.to === d.to && Math.abs((v.report || 0) - d.report) < 60000) : null;
+  const head = d.event ? S.base.head.find(h => h.date === d.date && h.from === d.from && h.to === d.to) : null;
+  const dPh = cab ? cb && cb.phone : c.phone;
+  const acts = [
+    okPhone(dPh) ? `<a class="btn" href="tel:+${digits(dPh)}">📞 Call driver</a>` : '',
+    !cab && okPhone(c.phone) ? `<a class="btn" target="_blank" href="${waLink(c.phone, tripText(d))}">💬 Send trip to driver</a>` : '',
+    w ? `<a class="btn" target="_blank" href="${mapAt(w.lat, w.lng)}">📍 Last seen ${ago(w.at)}</a>` : '',
+    d.track ? `<a class="btn" target="_blank" href="${esc(d.track)}">${d.from === 'AIR' || d.to === 'AIR' ? '✈ Flight' : '🚆 Train'} live status</a>` : '',
+    cb && cb.link ? `<a class="btn" target="_blank" href="${esc(cb.link)}">📍 Track cab</a>` : '',
+  ].filter(Boolean);
+  const gRows = () => d.guests.map(g => { const out = outIds.indexOf(g.id) >= 0;
+    return `<div class="fr ${out ? 'gone' : ''}"><div class="mid"><div class="t2">${esc(fullName(g.name))}</div><div class="s">${roomOf(g) ? '🛏 Room ' + esc(roomOf(g)) + ' · ' : ''}${okPhone(g.phone) ? esc(ph10(g.phone)) : 'no number'}</div></div>
+      ${okPhone(g.phone) ? `<a class="ic call" href="tel:+${digits(g.phone)}">📞</a>` : ''}${guestMsgBtn(d, g)}<button class="ic nc" data-nc="${esc(g.id)}" title="${out ? 'Coming after all' : 'Not coming'}">${out ? '↩' : '✕'}</button></div>`; }).join('');
+  const people = () => d.guests.filter(g => outIds.indexOf(g.id) < 0).reduce((a, g) => a + (g.pax || 1), 0) + extra;
+  const evLeft = head ? S.base.duties.filter(o => o.event && o.date === d.date && o.from === d.from && o.to === d.to && isGone(o)).reduce((a, o) => a + paxOf(o), 0) + ownLeft(d.date, d.from, d.to) : 0;
+  sheet(`<h3>${hm(d.leave)} · ${esc(sp(d.from))} → ${esc(sp(d.to))}</h3>
+    <div class="meta">${cab ? '🚕 Cab' : esc(d.car) + (c.driver ? ' · ' + esc(c.driver) : '') + (c.reg ? ' · ' + esc(c.reg) : '')}${d.event ? ' · Shuttle ' + esc(roundName(d)) : ''}</div>
+    <div class="dst big ${x.c}">${esc(x.t)}</div>
+    ${acts.length ? `<div class="tacts">${acts.join('')}</div>` : ''}
+    ${cab ? cabBlock(d, cb) : ''}
+    ${d.event ? `<div class="sec">People</div><div class="card np"><div class="fr"><div class="mid"><div class="t2">${paxOf(d)} in this car</div><div class="s">${wv ? wv.pax + ' in the whole round' : ''}</div></div></div>
+        ${head ? `<div class="fr"><div class="mid"><div class="t2">${evLeft} / ${head.expected} left for ${esc(sp(d.to))}</div><div class="s">all cars + family cars</div></div><button class="btn sm" id="t_own">＋ 🏠 Family car</button></div>` : ''}</div>`
+      : `<div class="sec">Guests <span class="n" id="t_pn">${people()}</span></div><div class="card np" id="t_g">${gRows()}</div>
+        <div class="xtra"><span>Extra people</span><div class="stp"><button id="t_mi">−</button><b id="t_x">${extra}</b><button id="t_pl">+</button></div></div>
+        <button class="btn pri" id="t_hc" style="width:100%;display:none">Save people</button>`}
+    <div class="sec">Change</div>
+    <div class="card"><div class="grid2"><div><label id="t_tl"></label><input id="e_t" type="time"></div>${wv ? `<div><label>People (whole round)</label><input id="e_p" type="number" inputmode="numeric" value="${wv.pax}"></div>` : '<div></div>'}</div>
+      <div id="e_tm" class="meta"></div>
+      <label>Car</label><select id="e_car"></select><div id="e_pk"></div><div id="e_sw"></div>
+      <button class="btn pri big" style="width:100%;margin-top:12px" id="e_save">Save change</button></div>
+    <details class="more"><summary>Update status (optional)</summary><div class="chips st2">
+      ${['At pickup', 'Guests in car', 'Dropped'].map(s => `<span data-set="${s}" class="${i.st === s ? 'on' : ''}">${{ 'At pickup': 'Car at pickup', 'Guests in car': 'Guests in', 'Dropped': 'Dropped' }[s]}</span>`).join('')}
+      <span data-set="Problem">⚠ Problem</span><span data-set="Cancelled">✕ Cancel trip</span>${i.st ? '<span data-set="Reset">↩ Clear</span>' : ''}</div></details>
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`, () => {
+    if (!d.event) {
+      const dirty = () => { $('#t_hc').style.display = ''; $('#t_pn').textContent = people(); };
+      const wireG = () => { $$('[data-nc]').forEach(b => b.onclick = () => { const k = outIds.indexOf(b.dataset.nc); if (k >= 0) outIds.splice(k, 1); else outIds.push(b.dataset.nc); $('#t_g').innerHTML = gRows(); wireG(); dirty(); }); wireMsgBtns(); };
+      wireG();
+      $('#t_mi').onclick = () => { extra = Math.max(0, extra - 1); $('#t_x').textContent = extra; dirty(); };
+      $('#t_pl').onclick = () => { extra++; $('#t_x').textContent = extra; dirty(); };
+      $('#t_hc').onclick = () => { closeSheet(); coordSend('PAX|' + d.key, outIds.length || extra ? 'Headcount' : 'Reset', people(), JSON.stringify({ out: outIds, extra })); };
+    } else if ($('#t_own')) $('#t_own').onclick = () => ownSheet(d.from, d.to, head.name);
+    if (cab) wireCab(d, cb);
+    editWire(d);
+    $$('[data-set]').forEach(b => b.onclick = () => {
+      const s = b.dataset.set;
+      if (s === 'Cancelled' && !confirm('Cancel this trip?')) return;
+      closeSheet();
+      if (s === 'Reset') coordSend(d.key, 'Reset', null, ''); else if (s === 'Cancelled') coordSend(d.key, 'Cancelled', null, 'Cancelled by ' + S.who); else sendStep(d, s, coordSend);
+    });
+  });
+}
+const CAB_SVC = ['Uber', 'Ola', 'Rapido', 'Local taxi', 'Other'];
+function cabBlock(d, cb) {
+  const ppl = d.guests.filter(g => okPhone(g.phone));
+  return `<div class="sec">${cb ? 'Cab booked ✓' : 'Book the cab'}</div><div class="card">
+    ${cb ? '' : `<div class="meta" style="margin-bottom:6px">Book it in the cab app, then fill what you know. You can add the driver later.</div>`}
+    <div class="grid2"><div><label>Service</label><select id="cb_s">${CAB_SVC.map(s => `<option ${cb && cb.svc === s ? 'selected' : ''}>${s}</option>`).join('')}</select></div><div><label>Car number</label><input id="cb_r" value="${esc(cb && cb.reg || '')}" placeholder="GJ01 AB 1234"></div>
+      <div><label>Driver</label><input id="cb_d" value="${esc(cb && cb.driver || '')}"></div><div><label>Driver phone</label><input id="cb_p" type="tel" inputmode="tel" value="${esc(cb && cb.phone || '')}"></div></div>
+    <label>Trip share link (optional)</label><input id="cb_l" value="${esc(cb && cb.link || '')}" placeholder="paste from the cab app">
+    <button class="btn pri" id="cb_ok" style="width:100%;margin-top:10px">${cb ? 'Update' : '✓ Mark booked'}</button>
+    ${cb ? `<button class="btn ghost" id="cb_un" style="width:100%;margin-top:4px">Not booked after all</button>` : ''}
+    ${cb && ppl.length ? `<label>Send cab details to</label>${ppl.map(g => `<div class="fr"><div class="mid"><div class="t2">${esc(fullName(g.name))}</div></div><a class="btn sm pri" target="_blank" data-gm="${esc(msgKey(d, g))}" href="${waLink(g.phone, guestMsgText(d, g))}">💬 Send</a></div>`).join('')}` : ''}</div>`;
+}
+function wireCab(d, cb) {
+  $('#cb_ok').onclick = () => {
+    const o = { svc: $('#cb_s').value, reg: $('#cb_r').value.trim(), driver: $('#cb_d').value.trim(), phone: $('#cb_p').value.trim(), link: $('#cb_l').value.trim() };
+    if (o.phone && !okPhone(o.phone)) return toast('Driver phone looks wrong');
+    coordSend('CAB|' + d.key, 'Booked', null, JSON.stringify(o));
+    setTimeout(() => tripSheet(d), 50);
+  };
+  const un = $('#cb_un'); if (un) un.onclick = () => { coordSend('CAB|' + d.key, 'Reset', null, ''); setTimeout(() => tripSheet(d), 50); };
+}
+/* change car / time inside the trip sheet (same rules as before: free cars first, warns on a clash, swap offer) */
+function nextCab(date) { const used = new Set(S.base.duties.filter(o => o.date === date).map(o => o.car).concat((S.base.legs || []).filter(l => l.date === date).map(l => l.car))); for (let n = 1; n < 100; n++) if (!used.has('Cab ' + n)) return 'Cab ' + n; return 'Cab 99'; }
+function editWire(d) {
+  const pk = pickable(d.date);
+  const names = [...new Set(pk.cars.concat(isCab(d) ? [] : [d.car]))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const w = d.event ? S.base.waves.find(x => x.date === d.date && x.from === d.from && x.to === d.to && Math.abs((x.report || 0) - d.report) < 60000) : null;
+  const tLabel = d.event ? 'Leaves at' : d.type === 'Guest pickup' ? 'Train / flight now arrives at' : d.type === 'Guest drop' ? 'Train / flight now departs at' : 'Car leaves at';
+  const t0 = d.event ? (w ? w.leave : hm(d.leave)) : (d.type === 'Hotel transfer' ? hm(d.leave) : (schedTime(d).replace(/^\S+ /, '') || hm(d.leave)));
+  $('#t_tl').textContent = tLabel; $('#e_t').value = t0; $('#e_pk').innerHTML = pickNote(pk);
+  let dd = d;
+  const optsHtml = (x, sel) => (isCab(d) ? `<option value="${esc(d.car)}" selected>🚕 Cab (now)</option>` : `<option value="__CAB">🚕 Book a cab instead</option>`) + names.map(n => ({ n, ok: canDo(n, x), at: lastPlace(n, x.date, x.report), h: isHome(x.date, n) }))
+    .sort((a, b) => (b.n === sel) - (a.n === sel) || a.h - b.h || b.ok - a.ok || (b.at === x.from) - (a.at === x.from) || a.n.localeCompare(b.n, undefined, { numeric: true }))
+    .map(o => `<option value="${o.n}" ${o.n === sel ? 'selected' : ''}>${o.n} · ${drvTag(x.date, o.n)}${o.h ? ' 🏠' : ''}${o.n === d.car ? ' (now)' : ''}${o.ok ? ' · free' + (o.at && o.n !== d.car ? ' · at ' + sp(o.at) : '') : ' · ' + esc(busyText(o.n, x))}</option>`).join('');
+  $('#e_car').innerHTML = optsHtml(d, d.car);
+  const carVal = () => { const v = $('#e_car').value; return v === '__CAB' ? nextCab(d.date) : v; };
+  const upd = retime => {
+    const m0 = toMin(t0), m1 = toMin($('#e_t').value), delta = m0 != null && m1 != null ? m1 - m0 : 0;
+    dd = delta ? shiftTrip(d, delta) : d;
+    if (retime) { const v = $('#e_car').value; $('#e_car').innerHTML = optsHtml(dd, v); $('#e_car').value = v; }
+    $('#e_tm').innerHTML = delta ? `${delta > 0 ? '+' : ''}${delta} min · car at ${esc(sp(d.from))} by <b>${hm(dd.report)}</b>, reaches ${esc(sp(d.to))} ~${hm(dd.reach)}` : '';
+    const car = carVal(), cf = /^Cab /.test(car) ? [] : conflicts(car, dd);
+    const own = car === d.car && cf.length ? `<div class="clw">⚠ ${esc(car)} is busy at the new time - pick a free car</div>` : '';
+    $('#e_sw').innerHTML = own + (cf.length && !delta && car !== d.car ? `<div class="swbox"><b>${esc(car)} is busy then</b>${cf.map(o => `<button class="btn pri" data-swap="${esc(o.key)}">⇄ Swap: ${esc(car)} takes this, ${esc(d.car)} takes ${hm(o.leave)} ${esc(sp(o.from))}→${esc(sp(o.to))}</button>`).join('')}</div>` : '');
+    const sv = $('#e_save'); sv.textContent = cf.length ? 'Save anyway (will show as clash)' : 'Save change'; sv.className = 'btn big ' + (cf.length ? 'warnb' : 'pri');
+    $$('[data-swap]').forEach(b => b.onclick = () => lockBtn(b) && call('logiApp_swapTrips', [S.pin, S.who, d.key, b.dataset.swap], r => { closeSheet(); apply(r); toast('✓ Cars swapped'); }));
+  };
+  $('#e_car').onchange = () => upd(false); $('#e_t').oninput = () => upd(true);
+  $('#e_save').onclick = () => {
+    const car = carVal(), tNew = $('#e_t').value, ch = { car };
+    if (w) { ch.leave = tNew; ch.pax = $('#e_p').value; }
+    else if (tNew && tNew !== t0) ch.time = tNew;
+    if (car === d.car && !ch.time && (!w || (ch.leave === w.leave && Number(ch.pax) === w.pax))) return toast('Nothing changed');
+    const willClash = !/^Cab /.test(car) && conflicts(car, dd).length > 0;
+    const msg = /^Cab /.test(car) && car !== d.car ? '🚕 Now a cab - book it from the reminder' : willClash ? '⚠ Saved - shows as clash' : ch.time ? '✓ New time saved for everyone on this trip' : '✓ ' + car + ' saved';
+    closeSheet();
+    /* show it at once */
+    if (car !== d.car) { const ids = d.guests.map(g => g.id + '|' + g.leg); S.base.legs.forEach(l => { if (l.date === d.date && ids.indexOf(l.id + '|' + l.leg) >= 0) l.car = car; }); if (w) w.cars = w.cars.split(',').map(x => x.trim() === d.car ? car : x.trim()).join(', '); d.car = car; }
+    if (dd !== d) ['report', 'leave', 'reach', 'busy'].forEach(f => d[f] = dd[f]);
+    saveBg('logiApp_editTrip', [S.pin, S.who, d.key, ch], msg);
+  };
+  upd(false);
+}
+
+/* ---------- driver links (sent the day before, ticked like guest messages) ---------- */
+function driverMsg(c, day) {
+  if (!c.code || !S.base.appUrl) return 'Refresh the travel desk app (menu > Refresh) and send again.';
+  const url = S.base.appUrl + '?app=driver&d=' + c.code;
+  return dayPlanText({ driver: c.driver, phone: c.phone, url }, day);
+}
+function driverLinksSheet(day) {
+  const ds = dates(); day = day || ds.find(x => x > opDay(S.base.duties)) || S.date;
+  const cs = drvCars(day), o = drvStats(day), ok = c => c.driver && okPhone(c.phone);
+  const left = cs.filter(c => ok(c) && !S.live.status[drvKey(c, day)]);
+  sheet(`<h3>Driver links · ${dayLabel(day)}</h3>
+    <div class="chips">${ds.map(x => `<span data-dd="${x}" class="${x === day ? 'on' : ''}">${dayLabel(x)}</span>`).join('')}</div>
+    <div class="gmst"><b>${o.sent}/${o.all}</b> drivers sent${o.missing ? ` · <span class="red">${o.missing} without driver / phone</span>` : ''}</div>
+    ${left.length ? `<button class="btn pri big" id="dl_next" style="width:100%">💬 Send next (${left.length} left)</button>` : o.all && o.sent === o.all ? '<div class="done1">✓ Every driver has his link</div>' : ''}
+    <div class="card np">${cs.map(c => { const s = S.live.status[drvKey(c, day)], n = S.base.duties.filter(d => d.date === day && d.car === c.car).length;
+      return `<div class="fr"><div class="cn sm">${esc(c.car.replace('Car ', ''))}</div><div class="mid"><div class="t2">${c.driver ? esc(c.driver) : '<span style="color:var(--red)">No driver</span>'}</div><div class="s">${esc(c.reg || '')} · ${n} trip${n > 1 ? 's' : ''}${okPhone(c.phone) ? ' · ' + esc(ph10(c.phone)) : ''}</div></div>
+        ${ok(c) ? `<a class="btn sm ${s ? '' : 'pri'}" target="_blank" data-dk="${esc(drvKey(c, day))}" href="${waLink(c.phone, driverMsg(c, day))}">${s ? '✓ Sent' : '💬 Send'}</a>` : `<button class="btn sm warnb" data-qd="${esc(c.car)}">＋ Driver</button>`}</div>`; }).join('') || '<div class="empty">No hired cars with trips on this day</div>'}</div>
+    <div class="meta" style="margin-top:8px">Each driver gets his link and the day's trips. If the vendor changes the driver, add the new one here - he shows as not sent.</div>
+    <button class="btn ghost" style="width:100%;margin-top:10px" data-close>Close</button>`, () => {
+    $$('[data-dd]').forEach(b => b.onclick = () => driverLinksSheet(b.dataset.dd));
+    const mark = k => { if (!S.live.status[k]) coordSend(k, 'Sent', null, ''); setTimeout(() => driverLinksSheet(day), 300); };
+    $$('[data-dk]').forEach(a => a.addEventListener('click', () => mark(a.dataset.dk)));
+    $$('[data-qd]').forEach(b => b.onclick = () => quickDriver(cs.find(c => c.car === b.dataset.qd), () => driverLinksSheet(day)));
+    const nx = $('#dl_next');
+    if (nx) nx.onclick = () => { const c = left[0]; const a = document.createElement('a'); a.href = waLink(c.phone, driverMsg(c, day)); a.target = '_blank'; document.body.appendChild(a); a.click(); a.remove(); mark(drvKey(c, day)); };
+  });
+}
+function quickDriver(c, back) {
+  sheet(`<h3>Driver for ${esc(c.car)}</h3><div class="meta">${dayLabel(c.date)}${c.reg ? ' · ' + esc(c.reg) : ''}</div>
+    <label>Driver name</label><input id="qd_n" value="${esc(c.driver || '')}"><label>Driver phone</label><input id="qd_p" type="tel" inputmode="tel" value="${esc(c.phone || '')}">
+    <label>Car number (optional)</label><input id="qd_r" value="${esc(c.reg || '')}" placeholder="GJ01 AB 1234">
+    <button class="btn pri big" style="width:100%;margin-top:14px" id="qd_ok">Save</button><button class="btn ghost" style="width:100%;margin-top:6px" id="qd_x">Back</button>`, () => {
+    $('#qd_x').onclick = back;
+    $('#qd_ok').onclick = () => {
+      const o = { date: c.date, car: c.car }; CAR_FIELDS.forEach(f => o[f[0]] = c[f[0]] == null ? '' : c[f[0]]);
+      o.driver = $('#qd_n').value.trim(); o.phone = $('#qd_p').value.trim(); o.reg = $('#qd_r').value.trim();
+      if (!o.driver || !okPhone(o.phone)) return toast('Name and a 10-digit phone please');
+      if (!lockBtn($('#qd_ok'))) return;
+      call('logiApp_saveCar', [S.pin, o], r => { apply(r); toast('✓ ' + c.car + ' driver saved'); back(); });
+    };
+  });
+}
+/* morning list for the coordinators' group: every cab today and when to book it */
+function cabsTodaySheet() {
+  const day = S.date, cabs = S.base.duties.filter(d => d.date === day && isCab(d)).sort((a, b) => a.report - b.report);
+  const txt = ['🚕 *Cabs to book · ' + dayLabel(day) + '*', 'Book each one about ' + CAB_BOOK_MIN + ' min before pickup. The app shows a red reminder.', '']
+    .concat(cabs.map(d => '*' + hm(d.report) + '* ' + sp(d.from) + ' ➜ ' + sp(d.to) + ' · ' + paxOf(d) + ' ppl · book by *' + hm(d.report - CAB_BOOK_MIN * 60000) + '*' + (d.guests.length ? '\n     ' + gIn(d).map(g => fullName(g.name)).join(', ') : ''))).join('\n');
+  sheet(`<h3>🚕 Cabs · ${dayLabel(day)}</h3><div class="meta">${cabs.length} cab trip${cabs.length === 1 ? '' : 's'}. Send this to the coordinators' group in the morning.</div>
+    <div class="card np">${cabs.map(d => { const c = cabOf(d); return `<div class="fr" data-trip="${esc(d.key)}"><div class="mid"><div class="t2">${hm(d.report)} ${esc(sp(d.from))} → ${esc(sp(d.to))}</div><div class="s">${paxOf(d)} people · book by ${hm(d.report - CAB_BOOK_MIN * 60000)}</div></div><span class="dst ${c ? 'grn' : 'red'}">${c ? 'Booked' : 'Not booked'}</span></div>`; }).join('') || '<div class="empty">No cabs on this day</div>'}</div>
+    ${cabs.length ? `<a class="btn pri big" style="width:100%;margin-top:10px" target="_blank" href="${waLink('', txt)}">💬 Send list on WhatsApp</a>` : ''}
+    <button class="btn ghost" style="width:100%;margin-top:6px" data-close>Close</button>`, () => wireTripTaps());
+}
+
 function fcard(w) {
   const c = carInfo(S.date, w.car), now = Date.now(), live = S.date === opDay(S.base.duties) && w.from <= now;
   return `<div class="fr"><div class="cn sm">${esc(w.car.replace('Car ', ''))}</div>
@@ -631,80 +1048,6 @@ function fcard(w) {
     ${okPhone(c.phone) ? `<a class="ic call" href="tel:+${digits(c.phone)}">📞</a>` : '<span class="ic off">📞</span>'}</div>`;
 }
 
-/* ---------- screen ---------- */
-function renderCoord() {
-  if (!locs().some(l => l[0] === S.loc)) S.loc = 'ALL';
-  const L = S.loc, ds = S.base.duties.filter(d => d.date === S.date), q = S.q.trim().toLowerCase();
-  let body = '', counts = { out: 0, in: 0, free: 0 };
-  const out = ds.filter(d => inLoc(d.from, L) && !isGone(d) && !st(d).done && !stale(d)).sort((a, b) => a.leave - b.leave);
-  const inn = ds.filter(d => inLoc(d.to, L) && !st(d).done && !stale(d) && (L === 'ALL' ? isGone(d) : !inLoc(d.from, L))).sort((a, b) => etaOf(a) - etaOf(b));
-  const old = ds.filter(d => stale(d) && (inLoc(d.from, L) || inLoc(d.to, L)) && !isHome(d.date, d.car)).sort((a, b) => a.report - b.report);
-  const fr = freeNow(S.date).sort((a, b) => a.from - b.from);
-  const frHere = fr.filter(w => inLoc(w.at, L)), frElse = fr.filter(w => !inLoc(w.at, L));
-  const um = unmapped(S.date);
-  counts = { out: out.length, in: inn.length, free: frHere.length, plan: um.length };
-  const clashSet = ds.filter(d => !stale(d) && clashesOf(d).length);
-  if (!q && !S.clashView && S.tab === 'plan') {
-    body = um.length ? um.map(planCard).join('') : '<div class="empty">Every guest trip has a car 👍</div>';
-  } else if (S.clashView) {
-    body = clashSet.length ? clashSet.sort((a, b) => a.car.localeCompare(b.car, undefined, { numeric: true }) || a.report - b.report).map(d => ccard(d, 'out')).join('') : '<div class="empty">No clashes 👍</div>';
-  } else if (q) {
-    const num = /^\d+$/.test(q);
-    const hit = ds.filter(d => { if (num) return d.car === 'Car ' + Number(q); const c = carInfo(d.date, d.car); return [d.car, c.reg, c.driver].concat(d.guests.map(g => g.name)).join(' ').toLowerCase().indexOf(q) >= 0; })
-      .sort((a, b) => (st(a).done - st(b).done) || a.report - b.report);
-    body = hit.length ? hit.map(d => ccard(d, L !== 'ALL' && inLoc(d.to, L) && !inLoc(d.from, L) ? 'in' : 'out')).join('') : '<div class="empty">No trips for “' + esc(S.q) + '”</div>';
-  } else if (S.tab === 'free') {
-    const grp = (arr, title) => arr.length ? (title ? `<div class="sec">${title}</div>` : '') + `<div class="card np">${arr.map(fcard).join('')}</div>` : '';
-    if (L === 'ALL') {
-      const places = [...new Set(fr.map(w => w.at))];
-      body = places.map(p => grp(fr.filter(w => w.at === p), esc(sp(p)) + ' <span class="n">' + fr.filter(w => w.at === p).length + '</span>')).join('') || '<div class="empty">No free cars right now</div>';
-    } else {
-      body = (grp(frHere, '') || '<div class="empty">No free cars here right now</div>') + (frElse.length ? grp(frElse, 'Other places <span class="n">' + frElse.length + '</span>') : '');
-    }
-  } else {
-    const list = S.tab === 'in' ? inn : out, dir = S.tab;
-    const soon = Date.now() + 3 * 3600000, isToday = S.date === opDay(S.base.duties);
-    const now1 = isToday ? list.filter(d => (dir === 'in' ? etaOf(d) : d.leave) <= soon || st(d).step > 0) : list, later = isToday ? list.filter(d => now1.indexOf(d) < 0) : [];
-    const done = ds.filter(d => st(d).done && (dir === 'in' ? inLoc(d.to, L) : inLoc(d.from, L))).sort((a, b) => b.report - a.report);
-    body = (now1.map(d => ccard(d, dir)).join('') || '<div class="empty">Nothing ' + (dir === 'in' ? 'coming' : 'leaving') + (later.length ? ' in the next 3 hours' : '') + '</div>') +
-      (later.length ? `<details class="more"><summary>Later <span class="n">${later.length}</span></summary>${later.map(d => ccard(d, dir)).join('')}</details>` : '') +
-      (old.length ? `<details class="more"><summary>Not updated - past <span class="n">${old.length}</span></summary>${old.map(d => ccard(d, inLoc(d.to, L) && !inLoc(d.from, L) ? 'in' : 'out')).join('')}</details>` : '') +
-      (done.length ? `<details class="more"><summary>Done <span class="n">${done.length}</span></summary>${done.map(d => ccard(d, dir)).join('')}</details>` : '');
-  }
-  const head = S.base.head.filter(h => h.date === S.date && (inLoc(h.from, L) && L !== 'ALL'));
-  const headHtml = !q && !S.clashView && (S.tab === 'out' || S.tab === 'in') && head.length ? head.map(h => {
-    const own = ownLeft(S.date, h.from, h.to), left = ds.filter(d => d.event && d.from === h.from && d.to === h.to && isGone(d)).reduce((a, d) => a + paxOf(d), 0) + own;
-    return `<div class="hc" data-own="${esc(h.from + '|' + h.to + '|' + h.name)}"><span>${esc(h.name.replace(/ \(.*\)$/, ''))} ${h.dir === 'RETURN' ? '↩' : '→'}</span><b>${left}</b><span class="mut">/ ${h.expected} left${own ? ' · 🏠 ' + own : ''}</span><span class="plus">＋🏠</span></div>`; }).join('') : '';
-  const y = window.scrollY;
-  $('#app').innerHTML = `<div class="hd">${topNav()}
-      <div class="hrow"><select id="loc" class="hsel">${locs().map(l => `<option value="${l[0]}" ${l[0] === L ? 'selected' : ''}>📍 ${l[1]}</option>`).join('')}</select>
-        <select id="day" class="hsel sm">${dates().map(d => `<option value="${d}" ${d === S.date ? 'selected' : ''}>${d === today() ? 'Today' : dayLabel(d)}</option>`).join('')}</select></div>
-      <div class="srch"><input id="q" type="search" inputmode="search" placeholder="Car no., e.g. 7" value="${esc(S.q)}" autocomplete="off">${S.q ? '<button id="qx">✕</button>' : ''}</div>
-    </div>
-    ${S.clashView ? `<div class="clbar on" id="clv">⚠ ${clashSet.length} trips clash <span>✕</span></div>` : clashSet.length && !q ? `<div class="clbar" id="clv">⚠ ${clashSet.length} trips clash - tap to fix</div>` : ''}
-    ${S.q ? '' : gmBanner()}
-    <main class="cm">${headHtml}${body}</main>
-    <nav class="bn">${[['out', '⬆️', 'Leaving', counts.out], ['in', '⬇️', 'Coming', counts.in], ['free', '🅿️', 'Free', counts.free], ['plan', '📋', 'To plan', counts.plan]].map(t =>
-      `<button data-tab="${t[0]}" class="${!q && !S.clashView && S.tab === t[0] ? 'on' : ''}"><b>${t[1]}</b>${t[2]}${t[3] ? `<i class="${t[0] === 'plan' ? 'red' : ''}">${t[3]}</i>` : ''}</button>`).join('')}</nav>`;
-  $('#loc').onchange = e => { S.loc = e.target.value; store.set('la_loc', S.loc); S.open = {}; render(); window.scrollTo(0, 0); };
-  $('#day').onchange = e => { S.date = e.target.value; render(); window.scrollTo(0, 0); };
-  wireTop();
-  if ($('#clv')) $('#clv').onclick = () => { S.clashView = !S.clashView; render(); window.scrollTo(0, 0); };
-  $$('[data-gmb]').forEach(b => b.onclick = () => guestMsgSheet(b.dataset.gmb));
-  const qi = $('#q');
-  qi.oninput = e => { S.q = e.target.value; clearTimeout(S.qt); S.qt = setTimeout(() => { render(); const z = $('#q'); z.focus(); z.setSelectionRange(z.value.length, z.value.length); }, 250); };
-  if ($('#qx')) $('#qx').onclick = () => { S.q = ''; render(); };
-  $$('[data-tab]').forEach(b => b.onclick = () => { if (b.dataset.tab === 'more') return coordMenu(); S.tab = b.dataset.tab; S.q = ''; S.clashView = false; render(); window.scrollTo(0, 0); });
-  $$('[data-gs]').forEach(b => b.onclick = () => guestSheet(find(b.dataset.gs).guests, find(b.dataset.gs)));
-  $$('[data-asg]').forEach(b => b.onclick = () => assignSheet(um.find(j => j.id === b.dataset.asg)));
-  $$('[data-gj]').forEach(b => b.onclick = () => { const j = um.find(x => x.id === b.dataset.gj); guestSheet(j.legs.map(l => ({ name: l.name, phone: l.phone, group: l.group })), null); });
-  $$('[data-tog]').forEach(b => b.onclick = () => { const k = b.dataset.tog; S.open[k] = !S.open[k]; render(); });
-  const find = k => ds.find(x => x.key === k);
-  $$('[data-act]').forEach(b => b.onclick = () => sendStep(find(b.dataset.act), b.dataset.st, coordSend));
-  $$('[data-edit]').forEach(b => b.onclick = () => editTrip(find(b.dataset.edit)));
-  $$('[data-own]').forEach(b => b.onclick = () => { const p = b.dataset.own.split('|'); ownSheet(p[0], p[1], p.slice(2).join('|')); });
-  window.scrollTo(0, y);
-}
 
 /* ---------- to plan: guest trips without a car (new or changed arrivals / departures) ---------- */
 function unmapped(date) {
@@ -739,15 +1082,16 @@ function assignSheet(j) {
       const car = $('#a_car').value; if (!car) return toast('Choose a car');
       const items = j.legs.filter((l, k) => $(`[data-k="${k}"]`).checked).map(l => ({ id: l.id, name: l.name, leg: l.leg, car }));
       if (!items.length) return toast('Tick at least one guest');
-      if (!lockBtn($('#a_ok'))) return;
-      call('logiApp_mapGuests', [S.pin, items], r => { closeSheet(); apply(r); toast('✓ ' + car + ' assigned'); });
+      closeSheet();
+      items.forEach(it => S.base.legs.forEach(l => { if (l.id === it.id && l.leg === it.leg && l.date === j.date) l.car = car; }));
+      saveBg('logiApp_mapGuests', [S.pin, items], '✓ ' + car + ' assigned');
     };
   });
 }
 function guestSheet(guests, d) {
   sheet(`<h3>Guests</h3>${d ? `<div class="meta">${esc(d.car)} · ${hm(d.leave)} ${esc(sp(d.from))} → ${esc(sp(d.to))}</div>` : ''}
-    <div class="card np">${guests.map(g => `<div class="fr"><div class="mid"><div class="t2">${esc(g.name)}</div><div class="s">${okPhone(g.phone) ? esc(g.phone) : 'no number'}${g.group ? ' · ' + esc(g.group) : ''}</div></div>${icons(g.phone, 'Hello, this is the travel desk for the Bothra family events.')}</div>`).join('')}</div>
-    <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`);
+    <div class="card np">${guests.map(g => `<div class="fr"><div class="mid"><div class="t2">${esc(g.name)}</div><div class="s">${okPhone(g.phone) ? esc(g.phone) : 'no number'}${g.group ? ' · ' + esc(g.group) : ''}</div></div>${okPhone(g.phone) ? `<a class="ic call" href="tel:+${digits(g.phone)}">📞</a>` : ''}${d ? guestMsgBtn(d, g) : ''}</div>`).join('')}</div>
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`, () => wireMsgBtns());
 }
 function teamLinksSheet() {
   call('logiApp_teamLinks', [S.pin], links => sheet(`<h3>Team app links</h3><div class="meta">Each person gets their own link - no PIN, stays signed in. Add people with a phone in More → Team.</div>
@@ -834,25 +1178,23 @@ function editTrip(d) {
   });
 }
 
-/* ---------- menu, help, admin ---------- */
-/* primary navigation in the header: Trips (live) · Cars · Team, plus one small menu */
-function topNav() {
-  return `<div class="hnav"><div class="seg2">${[['', 'Trips'], ['cars', 'Cars'], ['team', 'Team']].map(t => `<button data-sec="${t[0]}" class="${(S.admin || '') === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div><button class="ibtn" id="menu">⋯</button></div>`;
-}
-function wireTop() {
-  $$('[data-sec]').forEach(b => b.onclick = () => { S.admin = b.dataset.sec || null; render(); window.scrollTo(0, 0); });
-  $('#menu').onclick = coordMenu;
-}
+/* ---------- menu, help, Cars / To plan / Team ---------- */
 function coordMenu() {
+  const desk = S.loc === 'ALL';
   sheet(`<div class="menu">
-    <button class="btn" data-a="gm">💬 Guest messages (car details)</button>
+    <button class="btn" data-a="place">${placeIcon(S.loc)} Change place (now: ${esc(placeLabel(S.loc))})</button>
+    ${desk ? `<button class="btn" data-a="dl">🚗 Driver links</button><button class="btn" data-a="gm">💬 Guest messages (car details)</button><button class="btn" data-a="cabs">🚕 Cabs today - list for the group</button><button class="btn" data-a="team">👥 Team & their app links</button>` : `<button class="btn" data-a="cabs">🚕 Cabs today</button>`}
     <button class="btn" data-a="ml">📲 My link (stay signed in)</button>
     <button class="btn" data-a="help">ⓘ How it works</button>
     <button class="btn" data-a="rf">↻ Refresh</button>
     <button class="btn ghost" data-a="out">Sign out (${esc(S.who)})</button></div>`, () => {
     $$('[data-a]').forEach(b => b.onclick = () => {
       const a = b.dataset.a; closeSheet();
-      if (a === 'gm') guestMsgSheet();
+      if (a === 'place') placeSheet(false);
+      else if (a === 'dl') driverLinksSheet();
+      else if (a === 'gm') guestMsgSheet();
+      else if (a === 'cabs') cabsTodaySheet();
+      else if (a === 'team') { S.admin = 'team'; render(); window.scrollTo(0, 0); }
       else if (a === 'ml') myLinkSheet();
       else if (a === 'help') help();
       else if (a === 'rf') call('logiApp_refresh', [S.pin], r => { apply(r); toast('Up to date'); });
@@ -862,26 +1204,40 @@ function coordMenu() {
 }
 function help() {
   sheet(`<h3>How it works</h3><div class="help">
-    <p><b>📍 Place</b> - pick where you are. Leaving and Coming show only your place.</p>
-    <p><b>Search</b> - type a car number to find it anywhere.</p>
-    <p><b>Arrived / Left</b> - tap when the car reaches you and when it goes. For event cars you confirm how many got in.</p>
-    <p><b>Tap a card</b> for driver, train / flight and guests.</p>
-    <p><b>✎ Edit</b> - swap the car (e.g. a delay - send a free car), change an event round's time or head-count, report a problem, cancel.</p>
-    <p><b>Coming</b> - every arriving car shows its ETA and its next trip, so you know what it can do after.</p>
-    <p><b>👤</b> - guest names with call / WhatsApp.</p>
-    <p><b>Free</b> - cars waiting between trips, where, until when and their next trip.</p>
-    <p><b>To plan</b> - new or changed arrivals / departures with no car yet. Tap Assign car, pick a free one.</p>
-    <p><b>Undo</b> - every tap can be undone from the message at the top.</p></div>
+    <p><b>Your place</b> (top left) - you see the cars leaving ⬆ and arriving ⬇ there. Desk sees everything.</p>
+    <p><b>⚠ Needs you</b> - only things someone must act on: a cab to book, a trip with no car, a car on two trips, a driver's problem, a driver who has not started.</p>
+    <p><b>Next hour</b> - what is coming up. Trips leave the list by themselves once their time has passed.</p>
+    <p><b>Drivers update the trips</b> from their own link (Start trip, Guests in, Trip done). You don't need to tap anything.</p>
+    <p><b>Tap a trip</b> - guests with room and call, call or message the driver, where he was last seen, change the car or time (delay), someone not coming or an extra person, cab booking.</p>
+    <p><b>🚕 Cabs</b> - a red reminder appears ${CAB_BOOK_MIN} min before pickup. Book it in the cab app, then tap Mark booked and send the details to the guest.</p>
+    <p><b>Cars</b> - every car, its driver and which cars are free now. <b>To plan</b> - trips that still need a car, and clashes.</p></div>
     <button class="btn ghost" style="width:100%" data-close>Close</button>`);
 }
+function viewPlanTab() {
+  if (S.planFull) { const v = viewPlan(); return { html: `<div class="bar"><button class="btn grow" id="pl_back">← Back to To plan</button></div>` + v.html, wire() { $('#pl_back').onclick = () => { S.planFull = ''; render(); }; v.wire(); } }; }
+  const um = unmapped(S.date), cl = S.base.duties.filter(d => d.date === S.date && !isCab(d) && clashesOf(d).length).sort((a, b) => a.report - b.report);
+  const html = (um.length ? `<div class="sec red">No car yet <span class="n">${um.length}</span></div>` + um.map(j => noCarCard(j, 'ALL')).join('') : '') +
+    (cl.length ? `<div class="sec red">Car on two trips <span class="n">${cl.length}</span></div>` + cl.map(d => tripCard(d, '', '⚠ ' + esc(d.car) + ' is also on ' + clashesOf(d).map(o => hm(o.leave) + ' ' + esc(sp(o.from)) + '→' + esc(sp(o.to))).join(', '))).join('') : '') +
+    (!um.length && !cl.length ? '<div class="empty"><b>👍</b>Every trip has a car, no clashes</div>' : '') +
+    `<div class="sec">Full planner</div><div class="bar"><button class="btn grow" data-pf="guests">All guest trips</button><button class="btn grow" data-pf="waves">Event rounds</button></div>`;
+  return { html, wire() {
+    $$('[data-asg]').forEach(b => b.onclick = e => { e.stopPropagation(); assignSheet(um.find(j => j.id === b.dataset.asg)); });
+    $$('[data-pf]').forEach(b => b.onclick = () => { S.planFull = 1; S.planTab = b.dataset.pf; render(); window.scrollTo(0, 0); });
+    wireTripTaps();
+  } };
+}
+function viewCarsTab() {
+  const v = viewCars(), fr = S.date === opDay(S.base.duties) ? freeNow(S.date).sort((a, b) => a.from - b.from) : [];
+  return { html: (fr.length ? `<div class="sec">Free now <span class="n">${fr.length}</span></div><div class="card np">${fr.map(fcard).join('')}</div><div class="sec">All cars</div>` : '') + v.html, wire: v.wire };
+}
 function renderAdmin() {
-  if (S.admin !== 'cars' && S.admin !== 'team') S.admin = 'cars';
-  const v = { cars: viewCars, team: viewTeam }[S.admin]();
+  if (['cars', 'team', 'plan'].indexOf(S.admin) < 0) S.admin = 'cars';
+  const v = { cars: viewCarsTab, team: viewTeam, plan: viewPlanTab }[S.admin]();
   const y = window.scrollY;
-  $('#app').innerHTML = `<div class="hd">${topNav()}${S.admin === 'cars' ? `<div class="hrow"><select id="day" class="hsel">${dates().map(d => `<option value="${d}" ${d === S.date ? 'selected' : ''}>${d === today() ? 'Today' : dayLabel(d)}</option>`).join('')}</select></div>` : ''}</div>
-    <main class="cm">${v.html}</main>`;
-  wireTop();
-  if ($('#day')) $('#day').onchange = e => { S.date = e.target.value; render(); };
+  $('#app').innerHTML = `${headerHtml()}${S.admin === 'team' ? '<div class="bar" style="margin:10px 12px 0"><button class="btn grow" id="tm_back">← Back</button></div>' : ''}
+    <main class="cm">${v.html}</main>${navHtml()}`;
+  wireHeader();
+  if ($('#tm_back')) $('#tm_back').onclick = () => { S.admin = null; render(); };
   v.wire && v.wire(); window.scrollTo(0, y);
 }
 
@@ -903,33 +1259,56 @@ function msgStats(day, upcoming) {
   return o;
 }
 const ph10 = p => String(p || '').replace(/^\+91 ?/, '');
+/* The car-details message a guest gets (from Guest messages or from the 💬 next to the guest on a trip).
+   Plain and short: what, where, when, then who to call in order - driver, travel desk, coordinator as last resort.
+   Phone numbers are written +91 ..... ..... so WhatsApp makes them tap-to-call. */
+const telTxt = p => { const d = digits(p).slice(-10); return d.length === 10 ? '+91 ' + d.slice(0, 5) + ' ' + d.slice(5) : String(p || ''); };
+const trainTc = t => String(t || '').split(' ').map(w => /^[A-Z]{4,}$/.test(w) ? w[0] + w.slice(1).toLowerCase() : w).join(' ');
 function guestMsgText(d, g) {
-  const ci = carInfo(d.date, d.car), cab = /^Cab /.test(d.car), c = contactsOf(d.date);
-  const tr = (g.trip || '').replace(/ \(.*$/, ''), sch = schedTime(d), air = d.from === 'AIR' || d.to === 'AIR';
-  const others = d.guests.filter(x => x.id !== g.id).map(x => nameTc(x.name));
-  const L = ['Namaste ' + nameTc(g.name).split(' ')[0] + ' ji 🙏', '', '*Aman & Sandhya* · your car on *' + dayLabel(d.date) + '*', ''];
+  const ci = carInfo(d.date, d.car), cab = /^Cab /.test(d.car), cb = cab ? cabOf(d) : null, c = contactsOf(d.date);
+  const tr = trainTc((g.trip || '').replace(/ \(.*$/, '')), sch = schedTime(d).replace(/^\S+ /, ''), air = d.from === 'AIR' || d.to === 'AIR';
+  const term = (/\((T\d)\)/.exec(d.trip || '') || [])[1] || '';
+  const others = gIn(d).filter(x => x.id !== g.id).map(x => fullName(x.name));
+  const first = fullName(g.name).split(' ')[0], veh = cab ? 'cab' : 'car', Veh = cab ? 'Cab' : 'Car';
+  const L = ['Namaste ' + first + ' ji 🙏', '', 'Your ' + veh + ' for Aman & Sandhya\'s celebrations is arranged.', '', '*' + dayLabel(d.date) + '*'];
   if (d.type === 'Guest pickup') {
-    if (tr) L.push((air ? '✈ ' : '🚆 ') + tr + (sch ? ' · arrives ' + sch.replace(/^\S+ /, '') : ''));
-    L.push('📍 Your car will wait at ' + pname(d.from) + ' from *' + hm(d.report) + '*');
-    L.push('➜ It takes you to ' + pname(d.to));
+    if (tr) L.push((air ? 'Flight: ' : 'Train: ') + tr + (sch ? ', ' + (air ? 'lands ' : 'arrives ') + sch : '') + (term ? ' (' + term + ')' : ''));
+    L.push('Pickup: ' + pname(d.from) + ', ' + veh + ' waiting from *' + hm(d.report) + '*');
+    L.push('Drop: ' + pname(d.to));
   } else if (d.type === 'Guest drop') {
-    if (tr) L.push((air ? '✈ ' : '🚆 ') + tr + (sch ? ' · departs ' + sch.replace(/^\S+ /, '') : ''));
-    L.push('📍 Please be ready at ' + pname(d.from) + ' by *' + hm(d.report) + '* · car leaves ' + hm(d.leave));
-    L.push('➜ To ' + pname(d.to));
+    if (tr) L.push((air ? 'Flight: ' : 'Train: ') + tr + (sch ? ', departs ' + sch : '') + (term ? ' (' + term + ')' : ''));
+    L.push('Be ready at: ' + pname(d.from) + ' by *' + hm(d.report) + '*');
+    L.push(Veh + ' leaves: *' + hm(d.leave) + '* for ' + pname(d.to));
   } else {
-    L.push('🧳 Check-out: car leaves ' + pname(d.from) + ' at *' + hm(d.leave) + '* for ' + pname(d.to));
-    L.push('Please keep your bags ready by ' + hm(d.report));
+    L.push('Check-out move: bags ready by *' + hm(d.report) + '*');
+    L.push(Veh + ' leaves: *' + hm(d.leave) + '*, ' + pname(d.from) + ' to ' + pname(d.to));
   }
   L.push('');
-  if (cab) L.push('🚕 A cab will be booked for you. Cab number and driver will be sent before pickup.');
+  const drvName = cab ? (cb && cb.driver) || '' : ci.driver || '', drvPh = cab ? (cb && cb.phone) || '' : ci.phone || '';
+  if (cab && !cb) L.push('*Cab*', 'We will book it shortly before pickup and send you the cab number and driver here.');
   else {
-    L.push('🚗 ' + [ci.model, ci.reg].filter(Boolean).join(' · ') + (ci.model || ci.reg ? '' : 'Car'));
-    L.push('👤 Driver: ' + (ci.driver || '') + ' · ' + ph10(ci.phone));
+    L.push('*' + Veh + '*', [cab ? cb.svc : ci.model, cab ? cb.reg : ci.reg].filter(Boolean).join(' · ') || d.car);
+    if (cab && cb.link) L.push('Track: ' + cb.link);
   }
-  if (others.length) L.push('👥 With you: ' + others.join(', '));
-  L.push('', '🛎️ Travel desk at the hotel: ' + c.desk + ' · ' + ph10(c.deskPh));
-  L.push('🎉 Event coordinator: ' + c.ev + ' · ' + ph10(c.evPh));
+  if (others.length) L.push('With you: ' + others.join(', '));
+  L.push('', '*Who to call*');
+  let n = 1;
+  if (drvPh) L.push(n++ + '. Driver' + (drvName ? ', ' + drvName : '') + ': ' + telTxt(drvPh) + (d.type === 'Guest pickup' ? ' (call when you ' + (air ? 'land' : 'reach') + ')' : ''));
+  if (c.desk) L.push(n++ + '. Travel desk, ' + c.desk + ': ' + telTxt(c.deskPh));
+  if (c.ev) L.push(n++ + '. Event coordinator, ' + c.ev + ': ' + telTxt(c.evPh) + ' (only if you cannot reach the above)');
+  L.push('', 'Bothra family');
   return L.join('\n');
+}
+/* the 💬 next to a guest: same message, ticks the guest as sent */
+function guestMsgBtn(d, g) {
+  if (!okPhone(g.phone)) return '';
+  const sent = !!S.live.status[msgKey(d, g)], cab = isCab(d), cb = cab ? cabOf(d) : null;
+  if (!msgReady(d)) return `<button class="ic wa off2" data-why="${cab ? '' : !(carInfo(d.date, d.car).driver && okPhone(carInfo(d.date, d.car).phone)) ? 'driver' : 'contacts'}" title="Not ready">💬</button>`;
+  return `<a class="ic wa ${sent ? 'sent' : ''}" target="_blank" data-gm="${esc(msgKey(d, g))}" href="${waLink(g.phone, guestMsgText(d, g))}" title="${sent ? 'Sent - send again' : 'Send car details'}">${sent ? '✓' : '💬'}</a>`;
+}
+function wireMsgBtns(after) {
+  $$('[data-gm]').forEach(a => a.addEventListener('click', () => { const k = a.dataset.gm; if (!S.live.status[k]) coordSend(k, 'Sent', null, ''); a.classList.add('sent'); a.textContent = '✓'; if (after) setTimeout(after, 300); }));
+  $$('[data-why]').forEach(b => b.onclick = () => toast(b.dataset.why === 'driver' ? 'Add the driver and phone for this car first (Cars)' : 'Add the travel desk + coordinator for this day first (menu > Guest messages)'));
 }
 function gmBanner() {
   const ds = dates(), t = opDay(S.base.duties), next = ds.find(x => x > t);
@@ -1016,7 +1395,9 @@ function dayPlanText(l, date) {
     if (d.guests.length) L.push('     ' + d.guests.map(g => g.name.split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' ') + (okPhone(g.phone) ? ' ' + String(g.phone).replace(/^\+91 ?/, '') : '')).join(', '));
     L.push('');
   });
-  L.push('👉 *Har trip par yeh link kholein, bas bada button dabana hai:*', l.url);
+  L.push('👉 *Yeh aapka link hai · this is your link:*', l.url, '');
+  L.push('Har trip par link kholein aur bada button dabayein:', '1️⃣ Nikalte waqt *Start trip*', '2️⃣ Mehmaan baith jayein to *Guests in*', '3️⃣ Chhodne ke baad *Trip done*');
+  L.push('', '📍 Link kholne par *Location - Allow* dabayein', '📍 Desk group mein WhatsApp *live location (8 ghante)* share karein');
   if (desk.length) L.push('', '📞 Desk: ' + desk.map(x => x.name + ' ' + String(x.phone).replace(/^\+91 ?/, '')).join(' / '));
   return L.join('\n');
 }
@@ -1061,20 +1442,21 @@ function renderDriver() {
       ${nd ? `<p class="nx">अगली ट्रिप · Next: <b>${dayLabel(nd.date)} ${hm(nd.report)}</b> ${esc(dp(nd.from))}</p>` : ''}</div>`;
   } else {
     const i = st(d), s = i.st, now = Date.now();
-    const phase = s === 'Guests in car' ? 'drop' : s === 'At pickup' ? 'load' : 'go';
-    const nx = phase === 'go' ? 'At pickup' : phase === 'load' ? 'Guests in car' : 'Dropped';
+    const phase = s === 'Guests in car' ? 'drop' : s === 'At pickup' || s === 'On the way' ? 'load' : 'go';
+    const nx = phase === 'go' ? 'On the way' : phase === 'load' ? 'Guests in car' : 'Dropped';
     const place = phase === 'drop' ? d.to : d.from;
     const title = phase === 'go' ? ['लेने जाएँ', 'Go to pickup'] : phase === 'load' ? ['मेहमान बैठाएँ', 'Pick up guests'] : ['छोड़ने जाएँ', 'Drop guests'];
-    const btn = phase === 'go' ? ['पहुँच गया', 'I have arrived'] : phase === 'load' ? ['सब बैठ गए · चलें', 'Everyone in · Start'] : ['छोड़ दिया', 'Dropped'];
+    const btn = phase === 'go' ? ['ट्रिप शुरू', 'Start trip'] : phase === 'load' ? ['मेहमान बैठ गए', 'Guests in'] : ['ट्रिप पूरी', 'Trip done'];
     const when = phase === 'go' ? hm(d.report) : phase === 'drop' && i.etaMs ? '~' + hm(i.etaMs) : hm(d.leave);
     const whenL = phase === 'go' ? 'तक पहुँचें · be there by' : phase === 'load' ? 'निकलना है · leave at' : 'पहुँचेंगे · reach by';
+    const title2 = phase === 'load' && s === 'On the way' ? ['पिकअप पर जाएँ', 'Going to pickup'] : null;
     const wait = phase === 'go' && d.report - now > 45 * 60000 ? `<div class="wait">⏳ ${dur(d.report - now)} बाकी · free till ${hm(d.report - (drive(lastPlace2(d), d.from) + 10) * 60000)}</div>` : '';
     const sch = schedTime(d);
     const chips = [`👥 ${d.pax}`].concat(sch ? [sch] : [], d.hampers && phase !== 'drop' ? [`🎁 ${d.hampers} हैम्पर दें`] : [], /standby/.test(d.type) && phase === 'drop' ? ['⏳ वहीं रुकें · wait there'] : []);
     const guests = phase !== 'drop' && d.guests.length ? `<div class="dg">${d.guests.map(g => `<div><span>${esc(g.name.split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' '))}</span>${okPhone(g.phone) ? `<a class="ic call sm2" href="tel:+${digits(g.phone)}">📞</a>` : ''}</div>`).join('')}</div>`
       : phase !== 'drop' && d.event ? '<div class="dg"><div><span class="mut">कोऑर्डिनेटर लोग बैठाएँगे · coordinator will send people</span></div></div>' : '';
     main = `<div class="dstate ${i.late && !i.done ? 'late' : ''}">
-      <div class="ph">${bi(title[0], title[1])}</div>
+      <div class="ph">${bi((title2 || title)[0], (title2 || title)[1])}</div>
       <div class="dplace">${esc(dp(place))}</div>
       <div class="dwhen"><b>${when}</b><small>${whenL}</small></div>
       ${wait}
@@ -1089,9 +1471,11 @@ function renderDriver() {
   $('#app').innerHTML = `<div class="dwrap">${top}${main}</div>`;
   $('#list').onclick = () => sheet(`<h3>${dayLabel(S.date)}</h3>${trips.map(x => { const k = st(x); return `<div class="mini ${k.done ? 'mut' : ''}"><span><b>${hm(x.report)}</b> ${esc(dp(x.from))} ➜ ${esc(dp(x.to))}</span><span>${k.done ? '✓' : '👥 ' + x.pax}</span></div>`; }).join('') || '<div class="meta">—</div>'}
     ${[...new Set(r.cars.map(c => c.date))].length > 1 ? `<div class="chips" style="margin-top:12px">${[...new Set(r.cars.map(c => c.date))].sort().map(x => `<span data-dd="${x}" class="${x === S.date ? 'on' : ''}">${x === today() ? 'आज' : dayLabel(x)}</span>`).join('')}</div>` : ''}
-    <button class="btn ghost" style="width:100%;margin-top:10px" data-close>OK</button>`, () => $$('[data-dd]').forEach(b => b.onclick = () => { S.date = b.dataset.dd; closeSheet(); renderDriver(); }));
+    <label class="switch" style="margin-top:14px"><span>📍 ${bi('लोकेशन शेयर', 'Share location with desk')}</span><input type="checkbox" id="shr" ${S.share ? 'checked' : ''}></label>
+    <button class="btn ghost" style="width:100%;margin-top:10px" data-close>OK</button>`, () => { $$('[data-dd]').forEach(b => b.onclick = () => { S.date = b.dataset.dd; closeSheet(); renderDriver(); }); $('#shr').onchange = e => { S.share = e.target.checked; store.set('la_share', S.share ? '1' : '0'); startShare(); }; });
   $$('[data-go]').forEach(b => b.onclick = () => {
     if (!S.share) { S.share = true; store.set('la_share', '1'); startShare(); }
+    pingNow();
     const x = trips.find(t => t.key === b.dataset.go), stx = b.dataset.st;
     const prev = r.status[x.key] ? Object.assign({}, r.status[x.key]) : null;
     drvSend(x.key, stx, stx === 'Guests in car' ? x.pax : null, '', () => prev ? drvSend(x.key, prev.status, prev.pax, prev.note) : drvSend(x.key, 'Reset', null, ''));
@@ -1100,6 +1484,11 @@ function renderDriver() {
 }
 function lastPlace2(d) { const p = S.drv.duties.filter(o => o.date === d.date && o.reach <= d.report && o.key !== d.key).sort((a, b) => b.reach - a.reach)[0]; return p ? p.to : d.from; }
 let watchId = null, lastPing = 0;
+/* one location fix with every big-button tap, so the desk sees where the car was at that moment */
+function pingNow() {
+  if (!S.share || !navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(p => { lastPing = Date.now(); google.script.run.withFailureHandler(() => {}).driverApp_ping(PARAMS.d, p.coords.latitude, p.coords.longitude, p.coords.accuracy); }, () => {}, { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 });
+}
 function startShare() {
   if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
   if (!S.share || !navigator.geolocation) return;
@@ -1111,7 +1500,7 @@ function startShare() {
 
 /* ---------- start ---------- */
 if (DRIVER) {
-  S.share = store.get('la_share') === '1';
+  S.share = store.get('la_share') !== '0';   /* location is on by default (the phone asks once) */
   loadDriver(); setInterval(() => { if (!document.hidden && !$('.ov')) loadDriver(true); }, 60000); startShare();
 } else {
   if (PARAMS.c || PARAMS.s) {

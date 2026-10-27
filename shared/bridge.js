@@ -26,7 +26,10 @@
   window.__PARAMS = q;
 
   function call(fn, args, ok, fail) {
-    fetch(EXEC, { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args }) })
+    /* never wait forever: after 90 s the app says so (the save may still finish - the plan reloads) */
+    var ctl = window.AbortController ? new AbortController() : null, tm = ctl ? setTimeout(function () { ctl.abort(); }, 90000) : null;
+    fetch(EXEC, { method: 'POST', redirect: 'follow', signal: ctl ? ctl.signal : undefined, headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ fn: fn, args: args }) })
+      .then(function (r) { if (tm) clearTimeout(tm); return r; })
       .then(function (r) { return r.text(); })
       .then(function (t) {
         var o;
@@ -38,7 +41,8 @@
       .catch(function (e) {
         if (!fail) return;
         var m = String((e && e.message) || e);
-        fail(new Error(/fetch|network|load failed/i.test(m) ? 'No connection. Check the internet and try again.' : m));
+        if (tm) clearTimeout(tm);
+        fail(new Error(/abort/i.test(m) ? 'This is taking too long. Check in a minute - it may still have saved.' : /fetch|network|load failed/i.test(m) ? 'No connection. Check the internet and try again.' : m));
       });
   }
   function runner(ok, fail) {
