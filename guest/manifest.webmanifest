@@ -1,8 +1,6 @@
 {
   "name": "Guest Details",
   "short_name": "Guest Details",
-  "id": "./",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#d9771f",

@@ -1,8 +1,6 @@
 {
   "name": "Check-in desk",
   "short_name": "Check-in desk",
-  "id": "./",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#2d4f7c",

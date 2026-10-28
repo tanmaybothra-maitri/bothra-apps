@@ -63,7 +63,7 @@ def build(folder, src, app, name, icon):
     os.makedirs(out, exist_ok=True)
     open(os.path.join(out, 'index.html'), 'w', encoding='utf-8').write(html)
     manifest = {
-        'name': name, 'short_name': name, 'id': './', 'start_url': './', 'scope': './',
+        'name': name, 'short_name': name, 'scope': './',  # no start_url: the saved icon opens the exact link (with its key)
         'display': 'standalone', 'background_color': color, 'theme_color': color,
         'icons': [
             {'src': '../icons/%s-192.png' % icon, 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},

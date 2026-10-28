@@ -1,8 +1,6 @@
 {
   "name": "My trips",
   "short_name": "My trips",
-  "id": "./",
-  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#2f6a52",
