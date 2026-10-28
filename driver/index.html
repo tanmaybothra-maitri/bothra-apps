@@ -441,7 +441,7 @@ function viewCars() {
   const link = c => c.code && S.base.appUrl ? { driver: c.driver, phone: c.phone, url: S.base.appUrl + '?app=driver&d=' + c.code } : null;
   const html = `<div class="bar"><button class="btn pri grow" id="add">＋ Add car</button></div>
     ${missing ? `<div class="clbar" style="margin:0 0 8px">${missing} working car${missing > 1 ? 's' : ''} without driver / phone</div>` : ''}
-    <div class="card np">${cars.map(c => { const l = link(c), home = /HOME/i.test(c.source || '');
+    <div class="card np">${cars.map(c => { const l = link(c), home = ownCar(c);
       return `<div class="fr tap" data-ct="${esc(c.car)}"><div class="cn sm ${home ? 'home' : ''}">${esc(c.car.replace('Car ', ''))}</div>
         <div class="mid"><div class="t2">${c.driver ? esc(c.driver) : '<span style="color:var(--red)">No driver</span>'} <span class="mut" style="font-weight:500">${esc(c.reg || '')}</span></div>
           <div class="s">${c.trips.length ? c.trips.length + ' trips · ' + hm(c.trips[0].report) + '–' + hm(c.trips[c.trips.length - 1].busy) : 'no trips'}${home ? ' · family' : ''}</div></div>
@@ -566,10 +566,18 @@ function locs() {
 }
 const locOf = id => locs().find(l => l[0] === id) || locs()[0];
 function nextOfCar(d) { return S.base.duties.filter(o => o.date === d.date && o.car === d.car && o.report > d.report && live2(o)).sort((a, b) => a.report - b.report)[0] || null; }
-function famCars() { const f = {}; S.base.cars.filter(c => /HOME/i.test(c.source || '')).forEach(c => { f[c.car] = (c.owner || c.driver || 'Family').split(' ')[0]; }); return f; }
+function famCars() { const f = {}; S.base.cars.filter(c => ownCar(c)).forEach(c => { f[c.car] = (c.owner || c.driver || 'Family').split(' ')[0]; }); return f; }
 const inLoc = (p, id) => { const l = locOf(id); return !l[2] || l[2].indexOf(p) >= 0; };
 const dur = ms => { const m = Math.max(0, mins(ms)); return m < 60 ? m + 'm' : Math.floor(m / 60) + 'h' + (m % 60 ? ' ' + (m % 60) + 'm' : ''); };
-const isHome = (date, car) => /HOME/i.test(carInfo(date, car).source || '');
+const nmK = x => String(x || '').toLowerCase().replace(/[^a-z]/g, '');
+const ownCar = c => /HOME|OWN/i.test((c && c.source) || '') || !!(c && c.driver && nmK(c.driver) === nmK(c.owner));
+const isHome = (date, car) => ownCar(carInfo(date, car));
+/* car already standing at the pickup: its last drop was there, or first trip of the day from the hotel (cars report there), or a cab */
+function atPickup(d, duties) {
+  if (/^Cab /.test(d.car)) return true;
+  const p = (duties || []).filter(o => o.date === d.date && o.car === d.car && o.key !== d.key && o.reach <= d.report).sort((a, b) => b.reach - a.reach)[0];
+  return p ? p.to === d.from : d.from === 'HOTEL';
+}
 const homeName = (date, car) => { const o = carInfo(date, car).owner || carInfo(date, car).driver || ''; return o.split(' ')[0] || 'Family'; };
 const ownLeft = (date, from, to) => Object.keys(statusMap()).filter(k => k.indexOf('OWN|' + date + '|' + from + '|' + to + '|') === 0).reduce((a, k) => a + (Number(statusMap()[k].pax) || 0), 0);
 const stale = d => { const i = st(d); if (i.done) return false; const now = Date.now(); if (i.st === 'Guests in car') return now > (i.etaMs || d.reach) + 60 * 60000; return !i.st && now > d.busy + 45 * 60000; };
@@ -816,7 +824,7 @@ function nowView() {
 }
 /* Desk only: tomorrow's (and today's leftover) driver links and guest messages */
 function drvKey(c, day) { return 'DRV|' + day + '|' + c.car + '|' + digits(c.phone).slice(-10); }
-function drvCars(day) { return S.base.cars.filter(c => c.date === day && !/HOME/i.test(c.source || '') && S.base.duties.some(d => d.date === day && d.car === c.car)).sort((a, b) => a.car.localeCompare(b.car, undefined, { numeric: true })); }
+function drvCars(day) { return S.base.cars.filter(c => c.date === day && !ownCar(c) && S.base.duties.some(d => d.date === day && d.car === c.car)).sort((a, b) => a.car.localeCompare(b.car, undefined, { numeric: true })); }
 function drvStats(day) { const cs = drvCars(day), ok = c => c.driver && okPhone(c.phone); return { all: cs.length, sent: cs.filter(c => ok(c) && S.live.status[drvKey(c, day)]).length, missing: cs.filter(c => !ok(c)).length }; }
 function deskCard() {
   if (S.loc !== 'ALL') return '';
@@ -927,7 +935,7 @@ function tripSheet(d) {
     <div class="dst big ${x.c}">${esc(x.t)}</div>
     ${i.st === 'Problem' ? `<button class="btn big pri" id="t_solve" style="width:100%;margin:6px 0 8px">✓ Problem solved - close it</button>` : ''}
     ${(() => {   /* only the next step as a button; the rest as small links */
-      const cur = i.st, nx = cur === 'Problem' || cur === 'Cancelled' ? '' : nextOf(cur);
+      const cur = i.st, nx0 = cur === 'Problem' || cur === 'Cancelled' ? '' : nextOf(cur), nx = nx0 === 'On the way' && atPickup(d, S.base.duties) ? 'At pickup' : nx0;
       const lbl = { 'On the way': '🚗 Car has left for pickup', 'At pickup': '📍 Car reached ' + esc(sp(d.from)), 'Guests in car': '👥 Guests in - car left', 'Dropped': '✓ Reached ' + esc(sp(d.to)) + ' - trip done' }[nx];
       const btn = nx ? `<button class="btn big pri nxt" data-set="${nx}">${lbl}</button>` : cur === 'Dropped' ? '<div class="nxdone">✓ Trip done</div>' : cur === 'Cancelled' ? '<div class="nxdone red">✕ Trip cancelled</div>' : '';
       const links = [cur && cur !== 'Problem' ? '<a data-set="Reset">↩ Undo</a>' : '', !i.done && cur !== 'Problem' ? '<a data-set="Problem">⚠ Problem</a>' : '', cur !== 'Cancelled' && cur !== 'Dropped' ? '<a data-set="Cancelled">✕ Cancel trip</a>' : ''].filter(Boolean);
@@ -1270,7 +1278,7 @@ function ownSheet(from, to, name) {
 /* cars to offer in a dropdown: those with a driver + phone. Before any driver is entered for that day,
    every planned car is offered (marked "no driver yet") so the plan can still be changed. */
 function pickable(date) {
-  const day = S.base.cars.filter(c => c.date === date), has = c => String(c.driver || '').trim() && String(c.phone || '').trim(), home = c => /HOME/i.test(c.source || '');
+  const day = S.base.cars.filter(c => c.date === date), has = c => String(c.driver || '').trim() && String(c.phone || '').trim(), home = c => ownCar(c);
   const hired = day.filter(c => !home(c)), ok = hired.filter(has), fam = day.filter(c => home(c) && has(c));
   const list = (ok.length ? ok : hired).concat(fam);
   return { cars: [...new Set(list.map(c => c.car))], hidden: ok.length ? hired.length - ok.length : 0, none: hired.length > 0 && !ok.length };
@@ -1594,10 +1602,11 @@ function renderDriver() {
   } else {
     const i = st(d), s = i.st, now = Date.now();
     const phase = s === 'Guests in car' ? 'drop' : s === 'At pickup' || s === 'On the way' ? 'load' : 'go';
-    const nx = phase === 'go' ? 'On the way' : phase === 'load' ? 'Guests in car' : 'Dropped';
+    const here = phase === 'go' && atPickup(d, r.duties);   /* already standing at the pickup: no "on the way" step */
+    const nx = phase === 'go' ? (here ? 'At pickup' : 'On the way') : phase === 'load' ? 'Guests in car' : 'Dropped';
     const place = phase === 'drop' ? d.to : d.from;
-    const title = phase === 'go' ? ['लेने जाएँ', 'Go to pickup'] : phase === 'load' ? ['मेहमान बैठाएँ', 'Pick up guests'] : ['छोड़ने जाएँ', 'Drop guests'];
-    const btn = phase === 'go' ? ['ट्रिप शुरू', 'Start trip'] : phase === 'load' ? ['मेहमान बैठ गए', 'Guests in'] : ['ट्रिप पूरी', 'Trip done'];
+    const title = here ? ['पिकअप पर रहें', 'Be at pickup'] : phase === 'go' ? ['लेने जाएँ', 'Go to pickup'] : phase === 'load' ? ['मेहमान बैठाएँ', 'Pick up guests'] : ['छोड़ने जाएँ', 'Drop guests'];
+    const btn = here ? ['पिकअप पर हूँ', 'I am at pickup'] : phase === 'go' ? ['ट्रिप शुरू', 'Start trip'] : phase === 'load' ? ['मेहमान बैठ गए', 'Guests in'] : ['ट्रिप पूरी', 'Trip done'];
     const when = phase === 'go' ? hm(d.report) : phase === 'drop' && i.etaMs ? '~' + hm(i.etaMs) : hm(d.leave);
     const whenL = phase === 'go' ? 'तक पहुँचें · be there by' : phase === 'load' ? 'निकलना है · leave at' : 'पहुँचेंगे · reach by';
     const title2 = phase === 'load' && s === 'On the way' ? ['पिकअप पर जाएँ', 'Going to pickup'] : null;
