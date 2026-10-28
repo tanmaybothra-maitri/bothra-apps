@@ -238,6 +238,8 @@
   .fr.tap{cursor:pointer} .fr.dim2{opacity:.55}
   .bkh{padding:10px 14px 4px;font-weight:600;font-size:14.5px}.bkh span{display:block;font-weight:500;color:var(--mut);font-size:12.5px;margin-top:2px}
   .bkcab{padding:8px 14px;font-size:13.5px;color:var(--mut);border-top:1px solid var(--line)} .bkact{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)} .bkact .btn{flex:1}
+  .tbadge{background:#1d4ed8;color:#fff;border-radius:6px;padding:1px 7px;font-size:12.5px;letter-spacing:.3px}
+  .dterm{display:inline-block;background:#1d4ed8;color:#fff;border-radius:10px;padding:4px 14px;font-size:22px;font-weight:800;margin:4px 0 6px}
   .bkline{background:#f4f7f5;border-radius:10px;padding:9px 12px;margin:8px 0;font-size:14px}
   .freec{display:flex;align-items:center;gap:6px;width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px;margin:8px 0;font-size:14.5px;color:var(--ink);cursor:pointer;text-align:left}
   .freec b{font-size:17px} .freec span{margin-left:auto;color:var(--mut);font-size:13px}
@@ -287,7 +289,15 @@ function loading(on) { S.busy += on ? 1 : -1; let l = $('.loading'); if (S.busy 
 
 function data() { return DRIVER ? S.drv : S.base; }
 function pname(c) { const p = (data().places || {})[c]; return p ? p.name : c; }
-function plink(c) { const p = (data().places || {})[c]; return p ? p.map : WEB + 'www.google.com/maps/search/?api=1&query=' + encodeURIComponent(c + ' Ahmedabad'); }
+/* airport terminal of a trip (T1 / T2), shown wherever the airport is */
+const termOf = d => (d && /\((T\d)\)/.exec(d.trip || (d.guests && d.guests[0] && d.guests[0].trip) || '') || [])[1] || '';
+const spT = (c, d) => sp(c) + (c === 'AIR' && termOf(d) ? ' ' + termOf(d) : '');
+const pT = (c, d) => pname(c) + (c === 'AIR' && termOf(d) ? ' · Terminal ' + termOf(d).slice(1) : '');
+function plink(c, d) {
+  const t = c === 'AIR' ? termOf(d) : '';
+  if (t) return WEB + 'www.google.com/maps/dir/?api=1&travelmode=driving&destination=' + encodeURIComponent('Terminal ' + t.slice(1) + ', Sardar Vallabhbhai Patel International Airport, Ahmedabad');
+  const p = (data().places || {})[c]; return p ? p.map : WEB + 'www.google.com/maps/search/?api=1&query=' + encodeURIComponent(c + ' Ahmedabad');
+}
 function drive(a, b) { const d = data().drive || {}; return a === b ? 0 : (d[a + '|' + b] || 40); }
 function statusMap() { return DRIVER ? S.drv.status : S.live.status; }
 function carInfo(date, car) { return (data().cars || []).find(c => c.date === date && c.car === car) || { car: car, date: date }; }
@@ -361,7 +371,7 @@ function moreMenu(d, i, send) {
     ${i.st ? '<button class="btn" id="m_undo">↩️ Clear status</button>' : ''}
     ${!DRIVER && !i.done ? '<button class="btn" id="m_cancel">🚫 Trip cancelled</button>' : ''}
     ${!DRIVER ? FLOW.filter(f => f !== nextOf(i.st)).map(f => `<button class="btn" data-set="${f}">Set: ${f}</button>`).join('') : ''}
-    <a class="btn" target="_blank" href="${plink(d.from)}">🧭 Map: ${esc(pname(d.from))}</a><a class="btn" target="_blank" href="${plink(d.to)}">🧭 Map: ${esc(pname(d.to))}</a>
+    <a class="btn" target="_blank" href="${plink(d.from, d)}">🧭 Map: ${esc(pT(d.from, d))}</a><a class="btn" target="_blank" href="${plink(d.to, d)}">🧭 Map: ${esc(pname(d.to))}</a>
     <button class="btn ghost" data-close>Close</button></div>`, () => {
     const pb = $('#m_prob'); if (pb) pb.onclick = () => sendStep(d, 'Problem', send);
     const ub = $('#m_undo'); if (ub) ub.onclick = () => { closeSheet(); send(d.key, 'Reset', null, ''); };
@@ -683,12 +693,13 @@ function drvRow(d, attr) {
 /* direction of a trip as seen from the chosen place */
 function dirOf(d, L) { if (L === 'ALL') return ''; return inLoc(d.from, L) ? 'out' : inLoc(d.to, L) ? 'in' : ''; }
 const tOf = (d, dir) => dir === 'in' ? etaOf(d) : d.leave;
-function routeTxt(d, dir) { return dir === 'out' ? 'to ' + esc(sp(d.to)) : dir === 'in' ? 'from ' + esc(sp(d.from)) : esc(sp(d.from)) + ' → ' + esc(sp(d.to)); }
+function routeTxt(d, dir) { return dir === 'out' ? 'to ' + esc(spT(d.to, d)) : dir === 'in' ? 'from ' + esc(spT(d.from, d)) : esc(spT(d.from, d)) + ' → ' + esc(spT(d.to, d)); }
 const dirTag = dir => dir === 'out' ? '<span class="dtag out">⬆ Leaves</span>' : dir === 'in' ? '<span class="dtag in">⬇ Arrives</span>' : '';
 function subLine(d) {
   const x = [];
   const sch = schedTime(d); if (sch) x.push(sch + (d.guests[0] && d.guests[0].trip ? ' ' + esc(d.guests[0].trip.replace(/ \(.*$/, '').split(' ').slice(0, 3).join(' ')) : ''));
   if (d.hampers) x.push('🎁 ' + d.hampers);
+  if (termOf(d)) x.unshift(`<b class="tbadge">✈ ${termOf(d)}</b>`);
   return x.length ? `<div class="s">${x.join(' · ')}</div>` : '';
 }
 function tripCard(d, dir, flag) {
@@ -870,7 +881,8 @@ function tripText(d) {
   if (tr) L.push((d.from === 'AIR' || d.to === 'AIR' ? '✈ ' : '🚆 ') + tr + (sch ? ' ' + sch.replace(/^\S+ /, '') : ''));
   L.push('👥 ' + paxOf(d) + (d.hampers ? ' · 🎁 ' + d.hampers : ''));
   gIn(d).forEach(g => L.push('• ' + fullName(g.name) + (okPhone(g.phone) ? ' ' + ph10(g.phone) : '') + (roomOf(g) ? ' · Room ' + roomOf(g) : '')));
-  L.push('', '📍 ' + plink(d.from));
+  if (termOf(d)) L.push('✈ *Terminal ' + termOf(d).slice(1) + '*');
+  L.push('', '📍 ' + plink(d.from, d));
   return L.join('\n');
 }
 function cabMsgText(d, g, c) {
@@ -1065,7 +1077,7 @@ function carTripsSheet(car, date) {
     ${bk ? `<div class="bkline">🏨 Reports at hotel <b>${hm(bk.from)}</b> · released <b>${hm(bk.to)}</b> at ${esc(sp(bk.toAt))} · ${bk.hours} h</div>` : ''}
     ${okPhone(c.phone) ? `<div class="tacts"><a class="btn" href="tel:+${digits(c.phone)}">📞 Call driver</a><button class="btn" id="ct_ed">✎ Edit car</button></div>` : `<div class="tacts"><button class="btn" id="ct_ed">✎ Add driver</button></div>`}
     <div class="card np">${ts.map(d => { const x = drvState(d), past = d.busy < now;
-      return `<div class="fr tap ${past ? 'dim2' : ''}" data-trip="${esc(d.key)}"><div class="mid"><div class="t2">${hm(d.report)} ${esc(sp(d.from))} → ${esc(sp(d.to))}</div>
+      return `<div class="fr tap ${past ? 'dim2' : ''}" data-trip="${esc(d.key)}"><div class="mid"><div class="t2">${hm(d.report)} ${esc(spT(d.from, d))} → ${esc(spT(d.to, d))}</div>
         <div class="s">${d.event ? 'Shuttle · ' + esc(roundName(d)) : esc(gIn(d).map(g => fullName(g.name)).slice(0, 3).join(', ')) + (d.guests.length > 3 ? ' +' + (d.guests.length - 3) : '')} · ${paxOf(d)} ppl · free ${hm(d.busy)}</div>
         <div class="dst ${x.c}">${esc(x.t)}</div></div><span class="mut">›</span></div>`; }).join('') || '<div class="empty">No trips for this car on this day</div>'}</div>
     <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`, () => {
@@ -1297,7 +1309,12 @@ function renderAdmin() {
 
 /* ---------- guest messages: car details the day before ---------- */
 const nameTc = s => String(s || '').toLowerCase().replace(/(^|[\s(])([a-z])/g, (m, a, b) => a + b.toUpperCase()).replace(/'S\b/g, "'s");
-const contactsOf = day => (S.base.contacts || {})[day] || {};
+/* travel desk is per day; the event coordinator is the same every day (latest one entered is used when a day has none) */
+const contactsOf = day => {
+  const all = S.base.contacts || {}, c = Object.assign({}, all[day] || {});
+  if (!c.ev || !okPhone(c.evPh)) { const k = Object.keys(all).sort().reverse().find(x => all[x].ev && okPhone(all[x].evPh)); if (k) { c.ev = all[k].ev; c.evPh = all[k].evPh; } }
+  return c;
+};
 const contactsOk = day => { const c = contactsOf(day); return !!(c.desk && okPhone(c.deskPh) && c.ev && okPhone(c.evPh)); };
 /* hired car needs a driver + phone; a cab is booked on the day; both contacts must be set for the day */
 const msgReady = d => contactsOk(d.date) && (/^Cab /.test(d.car) || (!!carInfo(d.date, d.car).driver && okPhone(carInfo(d.date, d.car).phone)));
@@ -1395,7 +1412,7 @@ function guestMsgSheet(day) {
     <div class="chips">${ds.map(x => `<span data-gd="${x}" class="${x === day ? 'on' : ''}">${dayLabel(x)}</span>`).join('')}</div>
     <div class="gmct"><b>Contacts in the message for ${dayLabel(day)}</b>
       <div class="grid2"><div><label>Travel desk at hotel</label><input id="c_d" value="${esc(c.desk || desk.name || '')}" placeholder="Name"></div><div><label>Phone</label><input id="c_dp" type="tel" inputmode="tel" value="${esc(c.deskPh || desk.phone || '')}" placeholder="98xxxxxxxx"></div></div>
-      <div class="grid2"><div><label>Event coordinator</label><input id="c_e" value="${esc(c.ev || '')}" placeholder="Name"></div><div><label>Phone</label><input id="c_ep" type="tel" inputmode="tel" value="${esc(c.evPh || '')}" placeholder="98xxxxxxxx"></div></div>
+      <div class="grid2"><div><label>Event coordinator (all days)</label><input id="c_e" value="${esc(c.ev || '')}" placeholder="Name"></div><div><label>Phone</label><input id="c_ep" type="tel" inputmode="tel" value="${esc(c.evPh || '')}" placeholder="98xxxxxxxx"></div></div>
       <button class="btn ${contactsOk(day) ? '' : 'pri'}" id="c_save" style="width:100%;margin-top:8px">${contactsOk(day) ? 'Update contacts' : 'Save contacts'}</button></div>
     <div class="gmst"><b>${o.sent}/${o.all}</b> sent${o.wait ? ` · <span class="red">${o.wait} waiting (driver / contacts)</span>` : ''}${o.nophone ? ` · ${o.nophone} without phone` : ''}</div>
     ${o.left ? `<button class="btn pri big" id="gm_next" style="width:100%">💬 Send next (${o.left} left)</button>` : o.all && !o.wait ? '<div class="done1">✓ Everyone has their car details</div>' : ''}
@@ -1433,7 +1450,7 @@ function dayPlanText(l, date) {
   if (rb) L.push('🏨 *' + hm(rb.from) + ' - ' + pname('HOTEL') + ' par report karein*', '     Report at the hotel at ' + hm(rb.from), '');
   trips.forEach((d, k) => {
     const sch = schedTime(d), tr = d.guests.length && d.guests[0].trip ? d.guests[0].trip.replace(/ \(.*$/, '') : '';
-    L.push('*' + (k + 1) + '.  ' + hm(d.report) + '*  ' + sp(d.from) + ' ➜ ' + sp(d.to));
+    L.push('*' + (k + 1) + '.  ' + hm(d.report) + '*  ' + spT(d.from, d) + ' ➜ ' + spT(d.to, d));
     const x = [];
     if (tr) x.push((d.from === 'AIR' || d.to === 'AIR' ? '✈ ' : '🚆 ') + tr + (sch ? ' ' + sch.replace(/^\S+ /, '') : ''));
     x.push('👥 ' + d.pax); if (d.hampers) x.push('🎁 ' + d.hampers);
@@ -1505,19 +1522,19 @@ function renderDriver() {
       : phase !== 'drop' && d.event ? '<div class="dg"><div><span class="mut">कोऑर्डिनेटर लोग बैठाएँगे · coordinator will send people</span></div></div>' : '';
     main = `<div class="dstate ${i.late && !i.done ? 'late' : ''}">
       <div class="ph">${bi((title2 || title)[0], (title2 || title)[1])}</div>
-      <div class="dplace">${esc(dp(place))}</div>
+      <div class="dplace">${esc(pT(place, d))}</div>${place === 'AIR' && termOf(d) ? `<div class="dterm">✈ ${termOf(d)}</div>` : ''}
       <div class="dwhen"><b>${when}</b><small>${whenL}</small></div>
       ${wait}
       <div class="chips2">${chips.map(c => `<span>${c}</span>`).join('')}</div>
       ${guests}
-      <a class="btn nav" target="_blank" href="${plink(place)}">🧭 ${bi('रास्ता', 'Navigate')}</a>
+      <a class="btn nav" target="_blank" href="${plink(place, d)}">🧭 ${bi('रास्ता', 'Navigate')}</a>
       ${phase === 'drop' ? '' : `<div class="dto">➜ ${esc(dp(d.to))}</div>`}
     </div>
     <div class="dbot"><button class="btn pri dgo" data-go="${esc(d.key)}" data-st="${nx}">${bi(btn[0], btn[1])}</button>
       <button class="dprob" data-prob="${esc(d.key)}">⚠️ दिक्कत · Problem</button></div>`;
   }
   $('#app').innerHTML = `<div class="dwrap">${top}${main}</div>`;
-  $('#list').onclick = () => sheet(`<h3>${dayLabel(S.date)}</h3>${trips.map(x => { const k = st(x); return `<div class="mini ${k.done ? 'mut' : ''}"><span><b>${hm(x.report)}</b> ${esc(dp(x.from))} ➜ ${esc(dp(x.to))}</span><span>${k.done ? '✓' : '👥 ' + x.pax}</span></div>`; }).join('') || '<div class="meta">—</div>'}
+  $('#list').onclick = () => sheet(`<h3>${dayLabel(S.date)}</h3>${trips.map(x => { const k = st(x); return `<div class="mini ${k.done ? 'mut' : ''}"><span><b>${hm(x.report)}</b> ${esc(pT(x.from, x))} ➜ ${esc(pT(x.to, x))}</span><span>${k.done ? '✓' : '👥 ' + x.pax}</span></div>`; }).join('') || '<div class="meta">—</div>'}
     ${[...new Set(r.cars.map(c => c.date))].length > 1 ? `<div class="chips" style="margin-top:12px">${[...new Set(r.cars.map(c => c.date))].sort().map(x => `<span data-dd="${x}" class="${x === S.date ? 'on' : ''}">${x === today() ? 'आज' : dayLabel(x)}</span>`).join('')}</div>` : ''}
     <label class="switch" style="margin-top:14px"><span>📍 ${bi('लोकेशन शेयर', 'Share location with desk')}</span><input type="checkbox" id="shr" ${S.share ? 'checked' : ''}></label>
     <button class="btn ghost" style="width:100%;margin-top:10px" data-close>OK</button>`, () => { $$('[data-dd]').forEach(b => b.onclick = () => { S.date = b.dataset.dd; closeSheet(); renderDriver(); }); $('#shr').onchange = e => { S.share = e.target.checked; store.set('la_share', S.share ? '1' : '0'); startShare(); }; });
