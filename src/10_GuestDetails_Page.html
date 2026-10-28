@@ -161,7 +161,6 @@ body{margin:0;padding-top:env(safe-area-inset-top,0px)}
   <div class="sp"></div>
   <div class="sync" id="sync">Connecting to the sheet…</div>
   <button class="btn ghost" id="refresh" type="button">Refresh</button>
-  <button class="btn ghost" id="mylink" type="button" title="Link that stays signed in">📲 My link</button>
   <button class="btn ghost" id="lock" type="button" title="Lock this phone">Lock</button>
 </div></header>
 
@@ -478,14 +477,6 @@ $("#need").addEventListener("change", e=>{ filterNeed=e.target.value; render(); 
 $("#meters").addEventListener("click", e=>{ const m=e.target.closest(".meter"); if(!m) return; filterNeed = filterNeed===m.dataset.f ? "" : m.dataset.f; $("#need").value=filterNeed; render(); });
 $("#refresh").addEventListener("click", ()=>{ if(!busy && !uploading && pin) load(); });
 $("#lock").addEventListener("click", ()=>{ store.set("family_pin",""); pin=""; guests=[]; keepUrl({ app: "guest-details" }); render(); showPin(""); });
-$("#mylink").addEventListener("click", ()=>{
-  if(!myUrl) return alert("Lock and open again with the PIN once to get your link.");
-  const box = document.createElement("div"); box.className = "pin";
-  box.innerHTML = '<form><h2>My link</h2><p>This link always opens Guest Details without the PIN. Save it, or open it and Add to Home screen. Do not share it.</p><input readonly value="' + esc(myUrl) + '" style="font-size:13px;letter-spacing:0"><button class="btn primary" type="button" id="mlCopy">Copy</button><a class="btn" target="_blank" href="https:' + String.fromCharCode(47,47) + 'wa.me/?text=' + encodeURIComponent("My guest details link: " + myUrl) + '">WhatsApp it to me</a><button class="btn" type="button" id="mlClose">Close</button></form>';
-  document.body.appendChild(box);
-  box.querySelector("#mlClose").onclick = () => box.remove();
-  box.querySelector("#mlCopy").onclick = () => { try{ navigator.clipboard.writeText(myUrl); box.querySelector("#mlCopy").textContent = "Copied"; }catch(e){} };
-});
 
 pin = PARAMS.s ? "S:" + PARAMS.s : store.get("family_pin");
 if(pin && pin.indexOf("S:") === 0){ keepUrl({ app: "guest-details", s: pin.slice(2) }); store.set("family_pin", pin); }

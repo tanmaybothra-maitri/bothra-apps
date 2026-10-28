@@ -466,14 +466,9 @@ function checkOut(code) { setF('room', code, 'status', 'Checked out', '✓ Check
 /* ---------- menu, login, start ---------- */
 function menu() {
   sheet(`<h3>${esc(S.who)}</h3><div class="meta">Check-in desk</div><div class="menu">
-    <button class="btn" id="m_link">📲 My link (stay signed in)</button><button class="btn" id="m_wa">💬 Hotel WhatsApp no.${S.d && S.d.hotelWa ? ' · +' + esc(S.d.hotelWa) : ''}</button><button class="btn" id="m_ref">↻ Refresh now</button><button class="btn" id="m_help">❓ How to use</button><button class="btn" id="m_out">Sign out</button></div>`, () => {
+    <button class="btn" id="m_wa">💬 Hotel WhatsApp no.${S.d && S.d.hotelWa ? ' · +' + esc(S.d.hotelWa) : ''}</button><button class="btn" id="m_ref">↻ Refresh now</button><button class="btn" id="m_help">❓ How to use</button><button class="btn" id="m_out">Sign out</button></div>`, () => {
     $('#m_wa').onclick = () => setWa();
-    $('#m_link').onclick = () => {
-      const url = S.d && S.d.appUrl && S.pin.indexOf('S:') === 0 ? S.d.appUrl + '?app=hotel&s=' + S.pin.slice(2) : '';
-      sheet(`<h3>📲 My link</h3><div class="meta">Always opens signed in as <b>${esc(S.who)}</b>. Save it, or open it and Add to Home screen. Don't share it.</div>
-        ${url ? `<div class="box" style="word-break:break-all;font-size:12px">${esc(url)}</div><div class="menu"><button class="btn" id="l_cp">📋 Copy</button><a class="btn pri" target="_blank" href="${'https:' + String.fromCharCode(47, 47) + 'wa.me/?text=' + encodeURIComponent('My check-in desk link: ' + url)}">💬 WhatsApp</a></div>` : '<div class="meta">Sign out and sign in once to get your link.</div>'}
-        <button class="btn big" data-close style="margin-top:10px">Close</button>`, () => { const b = $('#l_cp'); if (b) b.onclick = () => { try { navigator.clipboard.writeText(url).then(() => toast('Copied')); } catch (e) { toast(url); } }; });
-    };
+
     $('#m_ref').onclick = () => { closeSheet(); call('hotelApp_load', [S.pin], d => { take(d); render(); toast('Updated'); }); };
     $('#m_help').onclick = () => sheet(`<h3>How to use</h3><div class="help">
       <p><b>📊 Summary</b> - rooms per night, check-ins, requests, Aadhaar. Tap any number for the rooms. 📤 sends it to the hotel.</p>

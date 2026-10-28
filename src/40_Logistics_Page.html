@@ -226,6 +226,9 @@
   details.more summary.lat{display:flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--mut);font-weight:600;text-transform:none;font-size:14px;margin:12px 0 4px} details.more summary.lat b{margin-left:auto;color:var(--ink)} details.more summary.lat.dim{background:transparent}
   .empty.sm{padding:14px 10px;font-size:14px}
   .chips.st2 span{font-size:13px}
+  .fr.tap{cursor:pointer} .fr.dim2{opacity:.55}
+  .freec{display:flex;align-items:center;gap:6px;width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px;margin:8px 0;font-size:14.5px;color:var(--ink);cursor:pointer;text-align:left}
+  .freec b{font-size:17px} .freec span{margin-left:auto;color:var(--mut);font-size:13px}
   .ic.wa.sent{background:#fff;color:var(--grn);border-color:var(--grn);font-weight:800} .ic.off2{opacity:.4;background:#fff;color:var(--mut);border-color:var(--line)}
 </style>
 </head>
@@ -408,13 +411,14 @@ function viewCars() {
   const html = `<div class="bar"><button class="btn pri grow" id="add">＋ Add car</button></div>
     ${missing ? `<div class="clbar" style="margin:0 0 8px">${missing} working car${missing > 1 ? 's' : ''} without driver / phone</div>` : ''}
     <div class="card np">${cars.map(c => { const l = link(c), home = /HOME/i.test(c.source || '');
-      return `<div class="fr"><div class="cn sm ${home ? 'home' : ''}">${esc(c.car.replace('Car ', ''))}</div>
+      return `<div class="fr tap" data-ct="${esc(c.car)}"><div class="cn sm ${home ? 'home' : ''}">${esc(c.car.replace('Car ', ''))}</div>
         <div class="mid"><div class="t2">${c.driver ? esc(c.driver) : '<span style="color:var(--red)">No driver</span>'} <span class="mut" style="font-weight:500">${esc(c.reg || '')}</span></div>
           <div class="s">${c.trips.length ? c.trips.length + ' trips · ' + hm(c.trips[0].report) + '–' + hm(c.trips[c.trips.length - 1].busy) : 'no trips'}${home ? ' · family' : ''}</div></div>
-        ${okPhone(c.phone) ? `<a class="ic call" href="tel:+${digits(c.phone)}">📞</a>` : ''}
-        ${l && c.trips.length ? `<a class="ic wa" target="_blank" href="${waLink(c.phone, dayPlanText(l, S.date))}" title="Send day plan">💬</a>` : ''}
+        ${okPhone(c.phone) ? `<a class="ic call" href="tel:+${digits(c.phone)}" onclick="event.stopPropagation()">📞</a>` : ''}
+        ${l && c.trips.length ? `<a class="ic wa" target="_blank" href="${waLink(c.phone, dayPlanText(l, S.date))}" title="Send day plan" onclick="event.stopPropagation()">💬</a>` : ''}
         <button class="ic" data-edit="${esc(c.car)}" title="Edit">✎</button></div>`; }).join('') || '<div class="empty">No cars this day</div>'}</div>`;
   return { html, wire() {
+    $$('[data-ct]').forEach(r => r.onclick = e => { if (e.target.closest('[data-edit]')) return; carTripsSheet(r.dataset.ct, S.date); });
     $('#add').onclick = () => carForm({ date: S.date, car: '' });
     $$('[data-edit]').forEach(b => b.onclick = () => carForm(Object.assign({}, cars.find(c => c.car === b.dataset.edit))));
   } };
@@ -754,6 +758,7 @@ function nowView() {
   const nd = needsYou(L, isToday), flagged = {};
   nd.trips.forEach(i => flagged[i.d.key] = 1);
   let h = deskCard();
+  if (isToday) { const fr = freeHere(); h += `<button class="freec" id="freec">🅿️ <b>${fr.length}</b> car${fr.length === 1 ? '' : 's'} free ${L === 'ALL' ? 'now' : 'here now'}${fr.length ? '<span>' + fr.slice(0, 6).map(w => esc(w.car.replace('Car ', ''))).join(' · ') + ' ›</span>' : ''}</button>`; }
   const nN = nd.trips.length + nd.nocar.length;
   if (nN) h += `<div class="sec red">⚠ Needs you <span class="n">${nN}</span></div>` +
     nd.nocar.map(j => noCarCard(j, L)).concat(nd.trips.map(i => tripCard(i.d, dirOf(i.d, L), i.flag))).join('');
@@ -805,6 +810,7 @@ function renderCoord() {
   const um = unmapped(S.date);
   $$('[data-asg]').forEach(b => b.onclick = e => { e.stopPropagation(); assignSheet(um.find(j => j.id === b.dataset.asg)); });
   wireTripTaps();
+  if ($('#freec')) $('#freec').onclick = freeSheet;
   $$('details.more').forEach(x => x.ontoggle = () => { if (x.id === 'later') S.openLater = x.open; });
   window.scrollTo(0, y);
 }
@@ -1020,6 +1026,30 @@ function quickDriver(c, back) {
     };
   });
 }
+/* one car's whole day: every trip in order, tap one to open it */
+function carTripsSheet(car, date) {
+  const c = carInfo(date, car), ts = S.base.duties.filter(d => d.date === date && d.car === car).sort((a, b) => a.report - b.report), now = Date.now();
+  sheet(`<h3>${esc(car)}${c.reg ? ' · ' + esc(c.reg) : ''}</h3><div class="meta">${dayLabel(date)} · ${c.driver ? esc(c.driver) : 'no driver yet'}${ts.length ? ' · ' + ts.length + ' trip' + (ts.length > 1 ? 's' : '') + ', ' + hm(ts[0].report) + '–' + hm(ts[ts.length - 1].busy) : ''}</div>
+    ${okPhone(c.phone) ? `<div class="tacts"><a class="btn" href="tel:+${digits(c.phone)}">📞 Call driver</a><button class="btn" id="ct_ed">✎ Edit car</button></div>` : `<div class="tacts"><button class="btn" id="ct_ed">✎ Add driver</button></div>`}
+    <div class="card np">${ts.map(d => { const x = drvState(d), past = d.busy < now;
+      return `<div class="fr tap ${past ? 'dim2' : ''}" data-trip="${esc(d.key)}"><div class="mid"><div class="t2">${hm(d.report)} ${esc(sp(d.from))} → ${esc(sp(d.to))}</div>
+        <div class="s">${d.event ? 'Shuttle · ' + esc(roundName(d)) : esc(gIn(d).map(g => fullName(g.name)).slice(0, 3).join(', ')) + (d.guests.length > 3 ? ' +' + (d.guests.length - 3) : '')} · ${paxOf(d)} ppl · free ${hm(d.busy)}</div>
+        <div class="dst ${x.c}">${esc(x.t)}</div></div><span class="mut">›</span></div>`; }).join('') || '<div class="empty">No trips for this car on this day</div>'}</div>
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`, () => {
+    wireTripTaps();
+    $('#ct_ed').onclick = () => carForm(Object.assign({}, c, { date, car }));
+  });
+}
+/* free cars right now, at the chosen place (or everywhere for the desk) */
+function freeHere() { const L = S.loc; return S.date === opDay(S.base.duties) ? freeNow(S.date).filter(w => L === 'ALL' || inLoc(w.at, L)).sort((a, b) => a.from - b.from) : []; }
+function freeSheet() {
+  const fr = freeHere(), L = S.loc;
+  const by = {}; fr.forEach(w => (by[w.at] = by[w.at] || []).push(w));
+  sheet(`<h3>Free cars now${L === 'ALL' ? '' : ' at ' + esc(placeLabel(L))}</h3><div class="meta">Waiting between trips, until their next trip. Tap 📞 to call the driver.</div>
+    ${Object.keys(by).map(p => `${L === 'ALL' ? `<div class="sec">${esc(sp(p))} <span class="n">${by[p].length}</span></div>` : ''}<div class="card np">${by[p].map(fcard).join('')}</div>`).join('') || '<div class="empty">No cars free here right now</div>'}
+    <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`);
+}
+
 /* morning list for the coordinators' group: every cab today and when to book it */
 function cabsTodaySheet() {
   const day = S.date, cabs = S.base.duties.filter(d => d.date === day && isCab(d)).sort((a, b) => a.report - b.report);
@@ -1175,7 +1205,6 @@ function coordMenu() {
   sheet(`<div class="menu">
     <button class="btn" data-a="place">${placeIcon(S.loc)} Change place (now: ${esc(placeLabel(S.loc))})</button>
     ${desk ? `<button class="btn" data-a="dl">🚗 Driver links</button><button class="btn" data-a="gm">💬 Guest messages (car details)</button><button class="btn" data-a="cabs">🚕 Cabs today - list for the group</button><button class="btn" data-a="team">👥 Team & their app links</button>` : `<button class="btn" data-a="cabs">🚕 Cabs today</button>`}
-    <button class="btn" data-a="ml">📲 My link (stay signed in)</button>
     <button class="btn" data-a="help">ⓘ How it works</button>
     <button class="btn" data-a="rf">↻ Refresh</button>
     <button class="btn ghost" data-a="out">Sign out (${esc(S.who)})</button></div>`, () => {
@@ -1186,7 +1215,6 @@ function coordMenu() {
       else if (a === 'gm') guestMsgSheet();
       else if (a === 'cabs') cabsTodaySheet();
       else if (a === 'team') { S.admin = 'team'; render(); window.scrollTo(0, 0); }
-      else if (a === 'ml') myLinkSheet();
       else if (a === 'help') help();
       else if (a === 'rf') call('logiApp_refresh', [S.pin], r => { apply(r); toast('Up to date'); });
       else if (a === 'out') { store.set('la_pin', ''); S.pin = ''; keepUrl({ app: 'logistics' }); renderLogin(); }
@@ -1354,17 +1382,6 @@ function guestMsgSheet(day) {
       if (!lockBtn($('#c_save'))) return;
       call('logiApp_saveContacts', [S.pin, S.who, day, v], r => { apply(r); toast('✓ Contacts saved'); guestMsgSheet(day); });
     };
-  });
-}
-/* personal link that always opens signed in */
-function myLinkSheet() {
-  const tok = S.pin.indexOf('S:') === 0 ? 's=' + S.pin.slice(2) : S.pin.indexOf('C:') === 0 ? 'c=' + S.pin.slice(2) : '';
-  const url = S.base && S.base.appUrl && tok ? S.base.appUrl + '?app=logistics&' + tok : '';
-  sheet(`<h3>📲 My link</h3><div class="meta">This link always opens the app signed in as <b>${esc(S.who)}</b>. Save it, or open it and Add to Home screen. Don't share it.</div>
-    ${url ? `<div class="box" style="word-break:break-all;font-size:12px;margin-top:10px">${esc(url)}</div>
-    <div class="nav2"><button class="btn" id="ml_copy">📋 Copy</button><a class="btn pri" target="_blank" href="${waLink('', 'My travel desk link: ' + url)}">💬 WhatsApp</a></div>` : '<div class="meta">Sign out and sign in again once to get your link.</div>'}
-    <button class="btn ghost" style="width:100%;margin-top:10px" data-close>Close</button>`, () => {
-    const b = $('#ml_copy'); if (b) b.onclick = () => { try { navigator.clipboard.writeText(url).then(() => toast('Copied')); } catch (e) { toast(url); } };
   });
 }
 
