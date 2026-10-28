@@ -237,6 +237,8 @@
   .dterm{display:inline-block;background:#1d4ed8;color:#fff;border-radius:10px;padding:4px 14px;font-size:22px;font-weight:800;margin:4px 0 6px}
   .addt{width:100%;margin:10px 0 0;border:1.5px dashed #1b5e3b;background:#fff;color:#1b5e3b;font-weight:700}
   .chips span small{font-weight:500;opacity:.75}
+  .nxwrap{margin:12px 0 4px}.nxt{width:100%}.nxdone{text-align:center;font-weight:700;color:#1b5e3b;padding:10px;background:#eef6f0;border-radius:12px}.nxdone.red{color:#b42318;background:#fdecea}
+  .nxl{display:flex;justify-content:center;gap:18px;margin-top:8px;font-size:14px}.nxl a{color:var(--mut);cursor:pointer;text-decoration:underline}
   .freech{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.chipb{border:1.5px solid #1b5e3b;background:#fff;color:#1b5e3b;border-radius:16px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer}
   .bkline{background:#f4f7f5;border-radius:10px;padding:9px 12px;margin:8px 0;font-size:14px}
   .freec{display:flex;align-items:center;gap:6px;width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px;margin:8px 0;font-size:14.5px;color:var(--ink);cursor:pointer;text-align:left}
@@ -915,6 +917,13 @@ function tripSheet(d) {
     <div class="meta">${cab ? '🚕 Cab' : esc(d.car) + (c.driver ? ' · ' + esc(c.driver) : '') + (c.reg ? ' · ' + esc(c.reg) : '')}${d.event ? ' · Shuttle ' + esc(roundName(d)) : ''}</div>
     <div class="dst big ${x.c}">${esc(x.t)}</div>
     ${i.st === 'Problem' ? `<button class="btn big pri" id="t_solve" style="width:100%;margin:6px 0 8px">✓ Problem solved - close it</button>` : ''}
+    ${(() => {   /* only the next step as a button; the rest as small links */
+      const cur = i.st, nx = cur === 'Problem' || cur === 'Cancelled' ? '' : nextOf(cur);
+      const lbl = { 'On the way': '🚗 Car has left for pickup', 'At pickup': '📍 Car reached ' + esc(sp(d.from)), 'Guests in car': '👥 Guests in - car left', 'Dropped': '✓ Reached ' + esc(sp(d.to)) + ' - trip done' }[nx];
+      const btn = nx ? `<button class="btn big pri nxt" data-set="${nx}">${lbl}</button>` : cur === 'Dropped' ? '<div class="nxdone">✓ Trip done</div>' : cur === 'Cancelled' ? '<div class="nxdone red">✕ Trip cancelled</div>' : '';
+      const links = [cur && cur !== 'Problem' ? '<a data-set="Reset">↩ Undo</a>' : '', !i.done && cur !== 'Problem' ? '<a data-set="Problem">⚠ Problem</a>' : '', cur !== 'Cancelled' && cur !== 'Dropped' ? '<a data-set="Cancelled">✕ Cancel trip</a>' : ''].filter(Boolean);
+      return `<div class="nxwrap">${btn}${links.length ? `<div class="nxl">${links.join('')}</div>` : ''}</div>`;
+    })()}
     ${acts.length ? `<div class="tacts">${acts.join('')}</div>` : ''}
     ${cab ? cabBlock(d, cb) : ''}
     ${d.event ? `<div class="sec">People</div><div class="card np"><div class="fr"><div class="mid"><div class="t2">${paxOf(d)} in this car</div><div class="s">${wv ? wv.pax + ' in the whole round' : ''}</div></div></div>
@@ -927,9 +936,6 @@ function tripSheet(d) {
       <div id="e_tm" class="meta"></div>
       <label>Car</label><select id="e_car"></select><div id="e_pk"></div><div id="e_sw"></div>
       <button class="btn pri big" style="width:100%;margin-top:12px" id="e_save">Save change</button></div>
-    <details class="more"><summary>Update status (optional)</summary><div class="chips st2">
-      ${['At pickup', 'Guests in car', 'Dropped'].map(s => `<span data-set="${s}" class="${i.st === s ? 'on' : ''}">${{ 'At pickup': 'Car at pickup', 'Guests in car': 'Guests in', 'Dropped': 'Dropped' }[s]}</span>`).join('')}
-      <span data-set="Problem">⚠ Problem</span><span data-set="Cancelled">✕ Cancel trip</span>${i.st ? '<span data-set="Reset">↩ Clear</span>' : ''}</div></details>
     <button class="btn ghost" style="width:100%;margin-top:8px" data-close>Close</button>`, () => {
     if (!d.event) {
       const dirty = () => { $('#t_hc').style.display = ''; $('#t_pn').textContent = people(); };
