@@ -192,6 +192,8 @@
   .dto{margin-top:12px;color:var(--mut);font-size:15px}
   .dbot{position:sticky;bottom:0;background:#fff;padding:10px 14px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
   .btn.dgo{width:100%;min-height:84px;font-size:26px;border-radius:18px}
+  .dcall{display:block;width:100%;margin-top:8px;padding:12px;text-align:center;background:#fff;color:#1b5e3b;border:2px solid #1b5e3b;border-radius:12px;font-weight:700;font-size:16px;text-decoration:none}
+  .dcall small{display:block;font-weight:500;font-size:12.5px;color:var(--mut)}
   .dprob{display:block;margin:10px auto 0;border:0;background:none;color:var(--mut);font-size:14px;cursor:pointer}
   .gmct{background:#f4f5f2;border-radius:12px;padding:10px 12px;margin:8px 0} .gmct b{font-size:13px}
   .gmst{margin:8px 2px;font-size:14px} .gmst .red{color:var(--red);font-weight:600}
@@ -1499,7 +1501,7 @@ function renderDriver() {
   const r = S.drv; if (!r) return;
   const cars = r.cars.filter(c => c.date === S.date), trips = r.duties.filter(d => d.date === S.date).sort((a, b) => a.report - b.report);
   const now0 = Date.now(), open0 = trips.filter(d => !st(d).done && !stale(d));
-  const open = open0.filter((d, k) => st(d).st || !open0.slice(k + 1).some(n => n.report <= now0 + 15 * 60000)), d = open[0], desk = r.team.filter(t => t.role === 'Travel desk'), deskPh = desk.length ? desk[0].phone : '';
+  const open = open0.filter((d, k) => st(d).st || !open0.slice(k + 1).some(n => n.report <= now0 + 15 * 60000)), d = open[0], desk = r.team.filter(t => t.role === 'Travel desk'), dc = (r.contacts || {})[S.date] || {}, deskPh = okPhone(dc.deskPh) ? dc.deskPh : desk.length ? desk[0].phone : '', deskNm = okPhone(dc.deskPh) ? dc.desk : desk.length ? desk[0].name : '';
   const car = cars.map(c => c.car.replace('Car ', 'Car ') + (c.reg ? ' · ' + c.reg : '')).join(' | ');
   const top = `<div class="dtop"><div><b>${esc(car || 'My trips')}</b><small>${d === undefined ? '' : (trips.length - open.length + 1) + ' / ' + trips.length}</small></div>
     <span>${deskPh ? `<a class="ic call" href="tel:+${digits(deskPh)}" title="Desk">📞</a>` : ''}<button class="ic" id="list" title="Trips">☰</button></span></div>`;
@@ -1507,7 +1509,7 @@ function renderDriver() {
   if (!d) {
     const nd = r.duties.filter(x => x.date > S.date).sort((a, b) => a.report - b.report)[0];
     main = `<div class="dstate"><div class="big">🙏</div><h2>${trips.length ? 'आज का काम पूरा' : 'आज कोई ट्रिप नहीं'}</h2><p>${trips.length ? 'All trips done. Thank you!' : 'No trips today.'}</p>
-      ${nd ? `<p class="nx">अगली ट्रिप · Next: <b>${dayLabel(nd.date)} ${hm(nd.report)}</b> ${esc(dp(nd.from))}</p>` : ''}</div>`;
+      ${nd ? `<p class="nx">अगली ट्रिप · Next: <b>${dayLabel(nd.date)} ${hm(nd.report)}</b> ${esc(dp(nd.from))}</p>` : ''}<div style="margin-top:18px"><!--DESK--></div></div>`;
   } else {
     const i = st(d), s = i.st, now = Date.now();
     const phase = s === 'Guests in car' ? 'drop' : s === 'At pickup' || s === 'On the way' ? 'load' : 'go';
@@ -1535,9 +1537,10 @@ function renderDriver() {
       ${phase === 'drop' ? '' : `<div class="dto">➜ ${esc(dp(d.to))}</div>`}
     </div>
     <div class="dbot"><button class="btn pri dgo" data-go="${esc(d.key)}" data-st="${nx}">${bi(btn[0], btn[1])}</button>
-      <button class="dprob" data-prob="${esc(d.key)}">⚠️ दिक्कत · Problem</button></div>`;
+      <!--DESK--><button class="dprob" data-prob="${esc(d.key)}">⚠️ दिक्कत · Problem</button></div>`;
   }
-  $('#app').innerHTML = `<div class="dwrap">${top}${main}</div>`;
+  const callDesk = deskPh ? `<a class="btn dcall" href="tel:+${digits(deskPh)}">📞 ${bi('ट्रैवल डेस्क को कॉल', 'Call travel desk')}${deskNm ? '<small>' + esc(deskNm) + '</small>' : ''}</a>` : '';
+  $('#app').innerHTML = `<div class="dwrap">${top}${main.replace('<!--DESK-->', callDesk)}</div>`;
   $('#list').onclick = () => sheet(`<h3>${dayLabel(S.date)}</h3>${trips.map(x => { const k = st(x); return `<div class="mini ${k.done ? 'mut' : ''}"><span><b>${hm(x.report)}</b> ${esc(pT(x.from, x))} ➜ ${esc(pT(x.to, x))}</span><span>${k.done ? '✓' : '👥 ' + x.pax}</span></div>`; }).join('') || '<div class="meta">—</div>'}
     ${[...new Set(r.cars.map(c => c.date))].length > 1 ? `<div class="chips" style="margin-top:12px">${[...new Set(r.cars.map(c => c.date))].sort().map(x => `<span data-dd="${x}" class="${x === S.date ? 'on' : ''}">${x === today() ? 'आज' : dayLabel(x)}</span>`).join('')}</div>` : ''}
     <label class="switch" style="margin-top:14px"><span>📍 ${bi('लोकेशन शेयर', 'Share location with desk')}</span><input type="checkbox" id="shr" ${S.share ? 'checked' : ''}></label>
