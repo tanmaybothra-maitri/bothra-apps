@@ -1347,7 +1347,9 @@ function guestMsgText(d, g) {
   if (others.length) L.push('With you: ' + others.join(', '));
   L.push('', '*Who to call*');
   let n = 1;
-  if (drvPh) L.push(n++ + '. Driver' + (drvName ? ', ' + drvName : '') + ': ' + telTxt(drvPh) + (d.type === 'Guest pickup' ? ' (call when you ' + (air ? 'land' : 'reach') + ')' : ''));
+  /* family member driving their own car: never call them "driver" */
+  const nm = x => String(x || '').toLowerCase().replace(/[^a-z]/g, ''), own = !cab && ci.driver && ci.owner && nm(ci.driver) === nm(ci.owner);
+  if (drvPh) L.push(n++ + '. ' + (own ? drvName : 'Driver' + (drvName ? ', ' + drvName : '')) + ': ' + telTxt(drvPh) + (d.type === 'Guest pickup' ? ' (call when you ' + (air ? 'land' : 'reach') + ')' : ''));
   if (c.desk) L.push(n++ + '. Travel desk, ' + c.desk + ': ' + telTxt(c.deskPh));
   if (c.ev) L.push(n++ + '. Event coordinator, ' + c.ev + ': ' + telTxt(c.evPh) + ' (only if you cannot reach the above)');
   L.push('', 'Bothra family');
