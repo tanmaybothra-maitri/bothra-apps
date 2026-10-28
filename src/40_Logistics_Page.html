@@ -227,6 +227,9 @@
   .empty.sm{padding:14px 10px;font-size:14px}
   .chips.st2 span{font-size:13px}
   .fr.tap{cursor:pointer} .fr.dim2{opacity:.55}
+  .bkh{padding:10px 14px 4px;font-weight:600;font-size:14.5px}.bkh span{display:block;font-weight:500;color:var(--mut);font-size:12.5px;margin-top:2px}
+  .bkcab{padding:8px 14px;font-size:13.5px;color:var(--mut);border-top:1px solid var(--line)} .bkact{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)} .bkact .btn{flex:1}
+  .bkline{background:#f4f7f5;border-radius:10px;padding:9px 12px;margin:8px 0;font-size:14px}
   .freec{display:flex;align-items:center;gap:6px;width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px;margin:8px 0;font-size:14.5px;color:var(--ink);cursor:pointer;text-align:left}
   .freec b{font-size:17px} .freec span{margin-left:auto;color:var(--mut);font-size:13px}
   .ic.wa.sent{background:#fff;color:var(--grn);border-color:var(--grn);font-weight:800} .ic.off2{opacity:.4;background:#fff;color:var(--mut);border-color:var(--line)}
@@ -1026,10 +1029,31 @@ function quickDriver(c, back) {
     };
   });
 }
+/* vendor booking: when each hired car reports at the hotel and when it is released */
+function bookOf(date, car) { return ((S.base && S.base.booking) || (S.drv && S.drv.booking) || []).find(b => b.date === date && b.car === car) || null; }
+function bookingText(date, bk) {
+  return ['*Cars needed · ' + dayLabel(date) + '*', 'Report at ' + pname('HOTEL') + ' at the time shown', ''].concat(
+    bk.map(b => b.car + ': ' + hm(b.from) + ' to ' + hm(b.to) + ' (' + b.hours + ' h, ' + b.pkg + ')')).join('\n');
+}
+function bookingCard(date) {
+  const bk = ((S.base.booking) || []).filter(b => b.date === date).sort((a, b) => a.from - b.from);
+  const cabs = new Set(S.base.duties.filter(d => d.date === date && isCab(d)).map(d => d.key)).size;
+  if (!bk.length && !cabs) return '';
+  const pk = {}; bk.forEach(b => pk[b.pkg] = (pk[b.pkg] || 0) + 1);
+  return `<div class="sec">To book · ${dayLabel(date)} <span class="n">${bk.length}</span></div><div class="card np bkc">
+    <div class="bkh">${bk.length} car${bk.length === 1 ? '' : 's'}${Object.keys(pk).length ? ' · ' + Object.keys(pk).map(k => pk[k] + ' × ' + esc(k)).join(', ') : ''}<span>Time = reports at hotel → released</span></div>
+    ${bk.map(b => `<div class="fr tap" data-ct="${esc(b.car)}"><div class="cn sm">${esc(b.car.replace('Car ', ''))}</div>
+      <div class="mid"><div class="t2">${hm(b.from)} → ${hm(b.to)} <span class="mut" style="font-weight:500">· ${b.hours} h</span></div>
+      <div class="s">${b.trips} trip${b.trips === 1 ? '' : 's'} · ends at ${esc(sp(b.toAt))} · ${esc(b.pkg)}</div></div><span class="mut">›</span></div>`).join('')}
+    ${cabs ? `<div class="bkcab">🚕 ${cabs} cab ride${cabs === 1 ? '' : 's'} - book on the day</div>` : ''}
+    ${bk.length ? `<div class="bkact"><a class="btn" target="_blank" href="${waLink('', bookingText(date, bk))}">💬 Send to vendor</a><button class="btn" id="bk_cp">📋 Copy</button></div>` : ''}</div>`;
+}
+
 /* one car's whole day: every trip in order, tap one to open it */
 function carTripsSheet(car, date) {
-  const c = carInfo(date, car), ts = S.base.duties.filter(d => d.date === date && d.car === car).sort((a, b) => a.report - b.report), now = Date.now();
-  sheet(`<h3>${esc(car)}${c.reg ? ' · ' + esc(c.reg) : ''}</h3><div class="meta">${dayLabel(date)} · ${c.driver ? esc(c.driver) : 'no driver yet'}${ts.length ? ' · ' + ts.length + ' trip' + (ts.length > 1 ? 's' : '') + ', ' + hm(ts[0].report) + '–' + hm(ts[ts.length - 1].busy) : ''}</div>
+  const c = carInfo(date, car), ts = S.base.duties.filter(d => d.date === date && d.car === car).sort((a, b) => a.report - b.report), now = Date.now(), bk = bookOf(date, car);
+  sheet(`<h3>${esc(car)}${c.reg ? ' · ' + esc(c.reg) : ''}</h3><div class="meta">${dayLabel(date)} · ${c.driver ? esc(c.driver) : 'no driver yet'}${ts.length ? ' · ' + ts.length + ' trip' + (ts.length > 1 ? 's' : '') : ''}</div>
+    ${bk ? `<div class="bkline">🏨 Reports at hotel <b>${hm(bk.from)}</b> · released <b>${hm(bk.to)}</b> at ${esc(sp(bk.toAt))} · ${bk.hours} h</div>` : ''}
     ${okPhone(c.phone) ? `<div class="tacts"><a class="btn" href="tel:+${digits(c.phone)}">📞 Call driver</a><button class="btn" id="ct_ed">✎ Edit car</button></div>` : `<div class="tacts"><button class="btn" id="ct_ed">✎ Add driver</button></div>`}
     <div class="card np">${ts.map(d => { const x = drvState(d), past = d.busy < now;
       return `<div class="fr tap ${past ? 'dim2' : ''}" data-trip="${esc(d.key)}"><div class="mid"><div class="t2">${hm(d.report)} ${esc(sp(d.from))} → ${esc(sp(d.to))}</div>
@@ -1247,7 +1271,9 @@ function viewPlanTab() {
 }
 function viewCarsTab() {
   const v = viewCars(), fr = S.date === opDay(S.base.duties) ? freeNow(S.date).sort((a, b) => a.from - b.from) : [];
-  return { html: (fr.length ? `<div class="sec">Free now <span class="n">${fr.length}</span></div><div class="card np">${fr.map(fcard).join('')}</div><div class="sec">All cars</div>` : '') + v.html, wire: v.wire };
+  const bk = ((S.base.booking) || []).filter(b => b.date === S.date).sort((a, b) => a.from - b.from);
+  return { html: bookingCard(S.date) + (fr.length ? `<div class="sec">Free now <span class="n">${fr.length}</span></div><div class="card np">${fr.map(fcard).join('')}</div>` : '') + '<div class="sec">All cars</div>' + v.html,
+    wire() { v.wire(); const b = $('#bk_cp'); if (b) b.onclick = () => { try { navigator.clipboard.writeText(bookingText(S.date, bk)).then(() => toast('Copied')); } catch (e) { toast('Copy failed'); } }; } };
 }
 function renderAdmin() {
   if (['cars', 'team', 'plan'].indexOf(S.admin) < 0) S.admin = 'cars';
@@ -1392,6 +1418,8 @@ function dayPlanText(l, date) {
   const desk = S.base.team.filter(t => t.role === 'Travel desk');
   const reg = mine.map(c => carInfo(date, c).reg).filter(Boolean).join(', ');
   const L = ['🚗 *' + mine.join(', ') + (reg ? ' · ' + reg : '') + '*', '📅 *' + dayLabel(date) + '* · ' + trips.length + ' trips', '', 'Namaste ' + (l.driver ? l.driver.split(' ')[0] + ' ji' : 'ji') + ' 🙏', ''];
+  const rb = mine.map(c => bookOf(date, c)).filter(Boolean).sort((a, b) => a.from - b.from)[0];
+  if (rb) L.push('🏨 *' + hm(rb.from) + ' - ' + pname('HOTEL') + ' par report karein*', '     Report at the hotel at ' + hm(rb.from), '');
   trips.forEach((d, k) => {
     const sch = schedTime(d), tr = d.guests.length && d.guests[0].trip ? d.guests[0].trip.replace(/ \(.*$/, '') : '';
     L.push('*' + (k + 1) + '.  ' + hm(d.report) + '*  ' + sp(d.from) + ' ➜ ' + sp(d.to));
@@ -1460,7 +1488,8 @@ function renderDriver() {
     const title2 = phase === 'load' && s === 'On the way' ? ['पिकअप पर जाएँ', 'Going to pickup'] : null;
     const wait = phase === 'go' && d.report - now > 45 * 60000 ? `<div class="wait">⏳ ${dur(d.report - now)} बाकी · free till ${hm(d.report - (drive(lastPlace2(d), d.from) + 10) * 60000)}</div>` : '';
     const sch = schedTime(d);
-    const chips = [`👥 ${d.pax}`].concat(sch ? [sch] : [], d.hampers && phase !== 'drop' ? [`🎁 ${d.hampers} हैम्पर दें`] : [], /standby/.test(d.type) && phase === 'drop' ? ['⏳ वहीं रुकें · wait there'] : []);
+    const rb = phase === 'go' && d === trips[0] ? cars.map(c => bookOf(S.date, c.car)).filter(Boolean).sort((a, b) => a.from - b.from)[0] : null;
+    const chips = (rb && now < d.report ? [`🏨 ${hm(rb.from)} होटल रिपोर्ट · hotel report`] : []).concat([`👥 ${d.pax}`]).concat(sch ? [sch] : [], d.hampers && phase !== 'drop' ? [`🎁 ${d.hampers} हैम्पर दें`] : [], /standby/.test(d.type) && phase === 'drop' ? ['⏳ वहीं रुकें · wait there'] : []);
     const guests = phase !== 'drop' && d.guests.length ? `<div class="dg">${d.guests.map(g => `<div><span>${esc(g.name.split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' '))}</span>${okPhone(g.phone) ? `<a class="ic call sm2" href="tel:+${digits(g.phone)}">📞</a>` : ''}</div>`).join('')}</div>`
       : phase !== 'drop' && d.event ? '<div class="dg"><div><span class="mut">कोऑर्डिनेटर लोग बैठाएँगे · coordinator will send people</span></div></div>' : '';
     main = `<div class="dstate ${i.late && !i.done ? 'late' : ''}">
