@@ -235,6 +235,9 @@
   .bkcab{padding:8px 14px;font-size:13.5px;color:var(--mut);border-top:1px solid var(--line)} .bkact{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)} .bkact .btn{flex:1}
   .tbadge{background:#1d4ed8;color:#fff;border-radius:6px;padding:1px 7px;font-size:12.5px;letter-spacing:.3px}
   .dterm{display:inline-block;background:#1d4ed8;color:#fff;border-radius:10px;padding:4px 14px;font-size:22px;font-weight:800;margin:4px 0 6px}
+  .addt{width:100%;margin:10px 0 0;border:1.5px dashed #1b5e3b;background:#fff;color:#1b5e3b;font-weight:700}
+  .chips span small{font-weight:500;opacity:.75}
+  .freech{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px}.chipb{border:1.5px solid #1b5e3b;background:#fff;color:#1b5e3b;border-radius:16px;padding:5px 10px;font-size:13px;font-weight:600;cursor:pointer}
   .bkline{background:#f4f7f5;border-radius:10px;padding:9px 12px;margin:8px 0;font-size:14px}
   .freec{display:flex;align-items:center;gap:6px;width:100%;border:1px solid var(--line);background:#fff;border-radius:12px;padding:11px 14px;margin:8px 0;font-size:14.5px;color:var(--ink);cursor:pointer;text-align:left}
   .freec b{font-size:17px} .freec span{margin-left:auto;color:var(--mut);font-size:13px}
@@ -465,7 +468,7 @@ function carList(date) {
 }
 function viewPlan() {
   const tab = S.planTab, opts = carList(S.date);
-  const optHtml = sel => `<option value="">No car</option>` + opts.map(o => `<option value="${o.car}" ${o.car === sel ? 'selected' : ''}>${o.car}${o.info && (o.info.reg || o.info.driver) ? ' · ' + esc(o.info.reg || o.info.driver) : ''}</option>`).join('');
+  const optHtml = sel => `<option value="">No car</option>` + opts.map(o => `<option value="${o.car}" ${o.car === sel ? 'selected' : ''}>${o.car}${o.info && (o.info.driver || o.info.reg) ? ' · ' + [o.info.driver ? String(o.info.driver).split(' ')[0] : '', o.info.reg || ''].filter(Boolean).map(esc).join(' · ') : ''}</option>`).join('');
   let html = `<div class="seg"><button data-tab="guests" class="${tab === 'guests' ? 'on' : ''}">Guest pickups & drops</button><button data-tab="waves" class="${tab === 'waves' ? 'on' : ''}">Event trips</button></div>`;
   if (tab === 'guests') {
     const legs = S.base.legs.filter(l => l.date === S.date), groups = {};
@@ -497,7 +500,7 @@ function viewPlan() {
     (waves.map((w, wi) => { const on = w.cars.split(',').map(s => s.trim()).filter(Boolean), sb = w.standby.split(',').map(s => s.trim()).filter(Boolean);
       return `<div class="card"><div class="top"><div><div class="tm" style="font-size:18px">${esc(w.leave)}</div><div class="tml">${esc((S.base.events[w.event] || {}).name || w.event)}</div></div><span class="pill ${on.length < w.need ? 'p-bad' : 'p-done'}" data-need="${wi}">${on.length}/${w.need} cars</span></div>
         <div class="route">${esc(pname(w.from))} <span class="arrow">→</span> ${esc(pname(w.to))}</div><div class="meta">👥 ${w.pax} people · ${esc(w.note)}</div>
-        <div class="chips">${opts.map(o => `<span data-wc="${wi}" data-car="${o.car}" class="${sb.indexOf(o.car) >= 0 ? 'sb' : on.indexOf(o.car) >= 0 ? 'on' : ''}">${o.car}</span>`).join('')}</div>
+        <div class="chips">${opts.map(o => `<span data-wc="${wi}" data-car="${o.car}" class="${sb.indexOf(o.car) >= 0 ? 'sb' : on.indexOf(o.car) >= 0 ? 'on' : ''}">${o.car}${o.info && o.info.driver ? `<small> ${esc(String(o.info.driver).split(' ')[0])}</small>` : ''}</span>`).join('')}</div>
         <div class="acts"><button class="btn pri grow" data-savew="${wi}">Save</button></div></div>`; }).join('') || '<div class="empty"><b>🎉</b>No event trips on this day.</div>');
   return { html, wire() {
     planTabs();
@@ -584,9 +587,11 @@ const coordSend = (k, s, p, n, undo) => {
   if (S.inf[k]) return toast('Saving… one moment');
   S.inf[k] = 1;
   const prev = S.live.status[k];
-  if (s === 'Reset') delete S.live.status[k]; else S.live.status[k] = { status: s, pax: p == null ? null : Number(p), at: Date.now(), by: 'Desk: ' + S.who, note: n || '' };
+  if (s === 'Reset') delete S.live.status[k];
+  else if (s === 'Resolved') { if (prev && prev.prev) S.live.status[k] = prev.prev; else delete S.live.status[k]; }
+  else S.live.status[k] = { status: s, pax: p == null ? null : Number(p), at: Date.now(), by: 'Desk: ' + S.who, note: n || '' };
   render();
-  toast(s === 'Reset' ? 'Cleared' : s === 'Problem' ? 'Desk informed' : s === 'Cancelled' ? 'Trip cancelled' : '✓ ' + ({ 'At pickup': 'Arrived', 'Guests in car': 'Left', 'Dropped': 'Reached' }[s] || s), undo);
+  toast(s === 'Reset' ? 'Cleared' : s === 'Resolved' ? '✓ Problem closed' : s === 'Problem' ? 'Desk informed' : s === 'Cancelled' ? 'Trip cancelled' : '✓ ' + ({ 'At pickup': 'Arrived', 'Guests in car': 'Left', 'Dropped': 'Reached' }[s] || s), undo);
   google.script.run.withSuccessHandler(live => { delete S.inf[k]; S.live = live; render(); })
     .withFailureHandler(e => { delete S.inf[k]; if (prev) S.live.status[k] = prev; else delete S.live.status[k]; render(); toast('⚠️ Not saved (' + e.message + ') - tap again'); })
     .logiApp_status(S.pin, S.who + ' @ ' + locOf(S.loc)[1], k, s, p, n);
@@ -649,13 +654,15 @@ const hcOf = d => { const s = S.live.status['PAX|' + d.key]; return s && s.statu
 const roomOf = g => (S.base.rooms || {})[g.id] || '';
 const gIn = d => { const h = hcOf(d), out = h && h.out || []; return d.guests.filter(g => out.indexOf(g.id) < 0); };
 const paxOf = d => { const h = hcOf(d); if (h && !d.event) return gIn(d).reduce((a, g) => a + (g.pax || 1), 0) + (Number(h.extra) || 0); const s = statusMap()[d.key]; return s && s.pax != null ? s.pax : d.pax; };
-const roundName = d => String(d.trip || '').replace(/^E\d+ \S+ - /, '').replace(/ \(.*\)$/, '') || 'Shuttle';
+const reqNote = d => String(d.note || '').replace(/\s*\(added by [^)]*\)\s*$/, '');
+const roundName = d => d.req ? 'Request' + (reqNote(d) ? ' · ' + reqNote(d) : '') : String(d.trip || '').replace(/^E\d+ \S+ - /, '').replace(/ \(.*\)$/, '') || 'Shuttle';
 const whereOf = d => S.live.where[d.date + '|' + d.car] || null;
 const seenRecent = d => { const w = whereOf(d); return w && w.at && Date.now() - w.at < 45 * 60000 ? w : null; };
 /* the driver uses the app today: any tap or location from him on this day */
 const usesApp = (date, car) => { const w = S.live.where[date + '|' + car]; return !!(w && w.at) || S.base.duties.some(o => o.date === date && o.car === car && S.live.status[o.key] && /^Driver/.test(S.live.status[o.key].by || '')); };
 const fullName = n => nameTc(n).replace(/\s+/g, ' ').trim();
 function namesLine(d) {
+  if (d.req) return '📝 ' + esc(roundName(d));
   if (d.event) return 'Shuttle · ' + esc(roundName(d));
   const g = gIn(d).map(x => fullName(x.name)), extra = (hcOf(d) || {}).extra || 0;
   if (!g.length && !extra) return '<span class="mut">No guests</span>';
@@ -776,6 +783,7 @@ function nowView() {
   const nd = needsYou(L, isToday), flagged = {};
   nd.trips.forEach(i => flagged[i.d.key] = 1);
   let h = deskCard();
+  h += `<button class="btn addt" id="addt">＋ Add trip</button>`;
   if (isToday) { const fr = freeHere(); h += `<button class="freec" id="freec">🅿️ <b>${fr.length}</b> car${fr.length === 1 ? '' : 's'} free ${L === 'ALL' ? 'now' : 'here now'}${fr.length ? '<span>' + fr.slice(0, 6).map(w => esc(w.car.replace('Car ', ''))).join(' · ') + ' ›</span>' : ''}</button>`; }
   const nN = nd.trips.length + nd.nocar.length;
   if (nN) h += `<div class="sec red">⚠ Needs you <span class="n">${nN}</span></div>` +
@@ -829,6 +837,7 @@ function renderCoord() {
   $$('[data-asg]').forEach(b => b.onclick = e => { e.stopPropagation(); assignSheet(um.find(j => j.id === b.dataset.asg)); });
   wireTripTaps();
   if ($('#freec')) $('#freec').onclick = freeSheet;
+  if ($('#addt')) $('#addt').onclick = addTripSheet;
   $$('details.more').forEach(x => x.ontoggle = () => { if (x.id === 'later') S.openLater = x.open; });
   window.scrollTo(0, y);
 }
@@ -905,6 +914,7 @@ function tripSheet(d) {
   sheet(`<h3>${hm(d.leave)} · ${esc(sp(d.from))} → ${esc(sp(d.to))}</h3>
     <div class="meta">${cab ? '🚕 Cab' : esc(d.car) + (c.driver ? ' · ' + esc(c.driver) : '') + (c.reg ? ' · ' + esc(c.reg) : '')}${d.event ? ' · Shuttle ' + esc(roundName(d)) : ''}</div>
     <div class="dst big ${x.c}">${esc(x.t)}</div>
+    ${i.st === 'Problem' ? `<button class="btn big pri" id="t_solve" style="width:100%;margin:6px 0 8px">✓ Problem solved - close it</button>` : ''}
     ${acts.length ? `<div class="tacts">${acts.join('')}</div>` : ''}
     ${cab ? cabBlock(d, cb) : ''}
     ${d.event ? `<div class="sec">People</div><div class="card np"><div class="fr"><div class="mid"><div class="t2">${paxOf(d)} in this car</div><div class="s">${wv ? wv.pax + ' in the whole round' : ''}</div></div></div>
@@ -930,6 +940,7 @@ function tripSheet(d) {
       $('#t_hc').onclick = () => { closeSheet(); coordSend('PAX|' + d.key, outIds.length || extra ? 'Headcount' : 'Reset', people(), JSON.stringify({ out: outIds, extra })); };
     } else if ($('#t_own')) $('#t_own').onclick = () => ownSheet(d.from, d.to, head.name);
     if (cab) wireCab(d, cb);
+    if ($('#t_solve')) $('#t_solve').onclick = () => { closeSheet(); coordSend(d.key, 'Resolved', null, 'Solved by ' + S.who); };
     editWire(d);
     $$('[data-set]').forEach(b => b.onclick = () => {
       const s = b.dataset.set;
@@ -979,7 +990,10 @@ function editWire(d) {
     const m0 = toMin(t0), m1 = toMin($('#e_t').value), delta = m0 != null && m1 != null ? m1 - m0 : 0;
     dd = delta ? shiftTrip(d, delta) : d;
     if (retime) { const v = $('#e_car').value; $('#e_car').innerHTML = optsHtml(dd, v); $('#e_car').value = v; }
-    $('#e_tm').innerHTML = delta ? `${delta > 0 ? '+' : ''}${delta} min · car at ${esc(sp(d.from))} by <b>${hm(dd.report)}</b>, reaches ${esc(sp(d.to))} ~${hm(dd.reach)}` : '';
+    const freeC = delta ? names.filter(n => n !== d.car && !isHome(dd.date, n) && canDo(n, dd)) : [];
+    $('#e_tm').innerHTML = delta ? `${delta > 0 ? '+' : ''}${delta} min · car at ${esc(sp(d.from))} by <b>${hm(dd.report)}</b>, reaches ${esc(sp(d.to))} ~${hm(dd.reach)}
+      <div class="freech"><span class="mut">${freeC.length ? 'Free at the new time:' : 'No other car is free then - book a cab'}</span>${freeC.map(n => { const at = lastPlace(n, dd.date, dd.report); return `<button class="chipb" data-fc="${esc(n)}">${esc(n)}${at ? ' · ' + esc(sp(at)) : ''}</button>`; }).join('')}</div>` : '';
+    $$('[data-fc]').forEach(b => b.onclick = () => { $('#e_car').value = b.dataset.fc; upd(false); });
     const car = carVal(), cf = /^Cab /.test(car) ? [] : conflicts(car, dd);
     const own = car === d.car && cf.length ? `<div class="clw">⚠ ${esc(car)} is busy at the new time - pick a free car</div>` : '';
     $('#e_sw').innerHTML = own + (cf.length && !delta && car !== d.car ? `<div class="swbox"><b>${esc(car)} is busy then</b>${cf.map(o => `<button class="btn pri" data-swap="${esc(o.key)}">⇄ Swap: ${esc(car)} takes this, ${esc(d.car)} takes ${hm(o.leave)} ${esc(sp(o.from))}→${esc(sp(o.to))}</button>`).join('')}</div>` : '');
@@ -1045,6 +1059,53 @@ function quickDriver(c, back) {
     };
   });
 }
+/* ＋ Add trip: a transfer request that comes up on the day */
+function addTripSheet() {
+  const pls = Object.keys(S.base.places || {}), L = S.loc !== 'ALL' && S.loc !== 'STATION' ? S.loc : 'HOTEL';
+  const pOpts = sel => pls.map(c => `<option value="${c}" ${c === sel ? 'selected' : ''}>${esc(pname(c))}</option>`).join('');
+  const now = new Date(Math.ceil((Date.now() + 30 * 60000) / 1800000) * 1800000), t0 = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+  sheet(`<h3>＋ Add trip</h3><div class="meta">A transfer request. It goes into the plan like any other trip.</div>
+    <div class="grid2"><div><label>Day</label><select id="n_d">${dates().map(d => `<option value="${d}" ${d === S.date ? 'selected' : ''}>${d === opDay(S.base.duties) ? 'Today' : dayLabel(d)}</option>`).join('')}</select></div>
+      <div><label>Leaves at</label><input id="n_t" type="time" value="${t0}"></div></div>
+    <div class="grid2"><div><label>From</label><select id="n_f">${pOpts(L)}</select></div><div><label>To</label><select id="n_to">${pOpts(L === 'HOTEL' ? 'VENUE' : 'HOTEL')}</select></div></div>
+    <div class="grid2"><div><label>Guest name</label><input id="n_n" placeholder="Who"></div><div><label>Phone</label><input id="n_p" type="tel" inputmode="tel" placeholder="98xxxxxxxx"></div></div>
+    <div class="grid2"><div><label>People</label><input id="n_x" type="number" inputmode="numeric" min="1" value="1"></div><div><label>Note</label><input id="n_o" placeholder="optional"></div></div>
+    <label>Car</label><select id="n_c"></select><div id="n_fr"></div>
+    <button class="btn big pri" id="n_ok" style="width:100%;margin-top:12px">Add trip</button>
+    <button class="btn ghost" style="width:100%;margin-top:6px" data-close>Cancel</button>`, () => {
+    const pseudo = () => {
+      const day = $('#n_d').value, m = toMin($('#n_t').value), f = $('#n_f').value, t = $('#n_to').value;
+      if (m == null) return null;
+      const leave = Date.parse(day + 'T' + ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2) + ':00+05:30');
+      const reach = leave + (drive(f, t) + 10) * 60000;
+      return { key: 'NEW', date: day, from: f, to: t, report: leave - 10 * 60000, leave, reach, busy: reach, event: true };
+    };
+    const fill = () => {
+      const x = pseudo(); if (!x) return;
+      const pk = pickable(x.date), sel = $('#n_c').value;
+      const opts = pk.cars.map(n => ({ n, ok: canDo(n, x), at: lastPlace(n, x.date, x.report), h: isHome(x.date, n) }))
+        .sort((a, b) => a.h - b.h || b.ok - a.ok || (b.at === x.from) - (a.at === x.from) || a.n.localeCompare(b.n, undefined, { numeric: true }));
+      $('#n_c').innerHTML = `<option value="">Choose a car…</option><option value="__CAB">🚕 Book a cab</option>` + opts.map(o => `<option value="${o.n}">${o.n} · ${drvTag(x.date, o.n)}${o.h ? ' 🏠' : ''}${o.ok ? ' · free' + (o.at ? ' · at ' + esc(sp(o.at)) : '') : ' · ' + esc(busyText(o.n, x))}</option>`).join('');
+      if (sel && [...$('#n_c').options].some(o => o.value === sel)) $('#n_c').value = sel;
+      const fr = opts.filter(o => o.ok && !o.h);
+      $('#n_fr').innerHTML = `<div class="freech"><span class="mut">${fr.length ? 'Free then:' : 'No car free then - book a cab'}</span>${fr.slice(0, 8).map(o => `<button class="chipb" data-nf="${o.n}">${esc(o.n)} · ${drvTag(x.date, o.n)}</button>`).join('')}</div>`;
+      $$('[data-nf]').forEach(b => b.onclick = () => { $('#n_c').value = b.dataset.nf; });
+    };
+    ['#n_d', '#n_t', '#n_f', '#n_to'].forEach(id => { $(id).onchange = fill; $(id).oninput = fill; });
+    fill();
+    $('#n_ok').onclick = () => {
+      const x = pseudo(), c0 = $('#n_c').value;
+      if (!x) return toast('Enter the time');
+      if (x.from === x.to) return toast('From and To are the same');
+      if (!c0) return toast('Choose a car or a cab');
+      const ph = $('#n_p').value.trim(); if (ph && !okPhone(ph)) return toast('Phone looks wrong');
+      const o = { date: x.date, time: $('#n_t').value, from: x.from, to: x.to, pax: $('#n_x').value, car: c0 === '__CAB' ? nextCab(x.date) : c0, name: $('#n_n').value.trim(), phone: ph, note: $('#n_o').value.trim() };
+      if (!lockBtn($('#n_ok'))) return;
+      call('logiApp_addTrip', [S.pin, S.who, o], r => { closeSheet(); apply(r); S.date = x.date; render(); toast('✓ Trip added' + (/^Cab/.test(o.car) ? ' - book the cab' : '')); });
+    };
+  });
+}
+
 /* vendor booking: when each hired car reports at the hotel and when it is released */
 function bookOf(date, car) { return ((S.base && S.base.booking) || (S.drv && S.drv.booking) || []).find(b => b.date === date && b.car === car) || null; }
 function bookingDay(date, bk) {
@@ -1199,7 +1260,7 @@ function pickable(date) {
   const list = (ok.length ? ok : hired).concat(fam);
   return { cars: [...new Set(list.map(c => c.car))], hidden: ok.length ? hired.length - ok.length : 0, none: hired.length > 0 && !ok.length };
 }
-const drvTag = (date, n) => { const c = carInfo(date, n), dn = String(c.driver || '').trim(); return dn && String(c.phone || '').trim() ? esc(dn.split(' ')[0]) : 'no driver yet'; };
+const drvTag = (date, n) => { const c = carInfo(date, n), dn = String(c.driver || '').trim(), rg = String(c.reg || '').trim(); return (dn && String(c.phone || '').trim() ? esc(dn.split(' ')[0]) : 'no driver yet') + (rg ? ' · ' + esc(rg) : ''); };
 const pickNote = p => p.none ? '<div class="meta" style="margin-top:6px">No drivers entered for this day yet - add them in Cars.</div>' : p.hidden ? `<div class="meta" style="margin-top:6px">${p.hidden} car${p.hidden > 1 ? 's' : ''} hidden - no driver/phone. Add in Cars.</div>` : '';
 /* a trip moved by some minutes (delay or new time) - used to check cars at the new time */
 const shiftTrip = (d, min) => Object.assign({}, d, { report: d.report + min * 60000, leave: d.leave + min * 60000, reach: d.reach + min * 60000, busy: (d.busy || d.reach) + min * 60000 });
@@ -1226,7 +1287,10 @@ function editTrip(d) {
       const m0 = toMin(t0), m1 = toMin($('#e_t').value), delta = m0 != null && m1 != null ? m1 - m0 : 0;
       dd = delta ? shiftTrip(d, delta) : d;
       if (retime) $('#e_car').innerHTML = optsHtml(dd, $('#e_car').value);
-      $('#e_tm').innerHTML = delta ? `${delta > 0 ? '+' : ''}${delta} min · car at ${esc(sp(d.from))} by <b>${hm(dd.report)}</b>, reaches ${esc(sp(d.to))} ~${hm(dd.reach)}` : '';
+      const freeC = delta ? names.filter(n => n !== d.car && !isHome(dd.date, n) && canDo(n, dd)) : [];
+    $('#e_tm').innerHTML = delta ? `${delta > 0 ? '+' : ''}${delta} min · car at ${esc(sp(d.from))} by <b>${hm(dd.report)}</b>, reaches ${esc(sp(d.to))} ~${hm(dd.reach)}
+      <div class="freech"><span class="mut">${freeC.length ? 'Free at the new time:' : 'No other car is free then - book a cab'}</span>${freeC.map(n => { const at = lastPlace(n, dd.date, dd.report); return `<button class="chipb" data-fc="${esc(n)}">${esc(n)}${at ? ' · ' + esc(sp(at)) : ''}</button>`; }).join('')}</div>` : '';
+    $$('[data-fc]').forEach(b => b.onclick = () => { $('#e_car').value = b.dataset.fc; upd(false); });
       const car = $('#e_car').value, cf = conflicts(car, dd);
       const own = car === d.car && cf.length ? `<div class="clw">⚠ ${esc(car)} is busy at the new time - pick a free car above</div>` : '';
       $('#e_sw').innerHTML = own + (cf.length && !delta && car !== d.car ? `<div class="swbox"><b>${esc(car)} is busy then</b>${cf.map(o => `<button class="btn pri" data-swap="${esc(o.key)}">⇄ Swap: ${esc(car)} takes this, ${esc(d.car)} takes ${hm(o.leave)} ${esc(sp(o.from))}→${esc(sp(o.to))}</button>`).join('')}</div>` : '');
@@ -1256,12 +1320,14 @@ function coordMenu() {
   sheet(`<div class="menu">
     <button class="btn" data-a="place">${placeIcon(S.loc)} Change place (now: ${esc(placeLabel(S.loc))})</button>
     ${desk ? `<button class="btn" data-a="dl">🚗 Driver links</button><button class="btn" data-a="gm">💬 Guest messages (car details)</button><button class="btn" data-a="cabs">🚕 Cabs today - list for the group</button><button class="btn" data-a="team">👥 Team & their app links</button>` : `<button class="btn" data-a="cabs">🚕 Cabs today</button>`}
+    <button class="btn" data-a="add">＋ Add a trip (transfer request)</button>
     <button class="btn" data-a="help">ⓘ How it works</button>
     <button class="btn" data-a="rf">↻ Refresh</button>
     <button class="btn ghost" data-a="out">Sign out (${esc(S.who)})</button></div>`, () => {
     $$('[data-a]').forEach(b => b.onclick = () => {
       const a = b.dataset.a; closeSheet();
       if (a === 'place') placeSheet(false);
+      else if (a === 'add') addTripSheet();
       else if (a === 'dl') driverLinksSheet();
       else if (a === 'gm') guestMsgSheet();
       else if (a === 'cabs') cabsTodaySheet();
@@ -1525,6 +1591,7 @@ function renderDriver() {
     const rb = phase === 'go' && d === trips[0] ? cars.map(c => bookOf(S.date, c.car)).filter(Boolean).sort((a, b) => a.from - b.from)[0] : null;
     const chips = (rb && now < d.report ? [`🏨 ${hm(rb.from)} होटल रिपोर्ट · hotel report`] : []).concat([`👥 ${d.pax}`]).concat(sch ? [sch] : [], d.hampers && phase !== 'drop' ? [`🎁 ${d.hampers} हैम्पर दें`] : [], /standby/.test(d.type) && phase === 'drop' ? ['⏳ वहीं रुकें · wait there'] : []);
     const guests = phase !== 'drop' && d.guests.length ? `<div class="dg">${d.guests.map(g => `<div><span>${esc(g.name.split(' ').map(w => w[0] + w.slice(1).toLowerCase()).join(' '))}</span>${okPhone(g.phone) ? `<a class="ic call sm2" href="tel:+${digits(g.phone)}">📞</a>` : ''}</div>`).join('')}</div>`
+      : phase !== 'drop' && d.req ? `<div class="dg"><div><span>${esc(reqNote(d) || 'Request')}</span>${(/(\+?91[\s-]?)?[6-9]\d{4}[\s-]?\d{5}/.exec(reqNote(d)) || [])[0] ? `<a class="ic call sm2" href="tel:+91${digits((/(\+?91[\s-]?)?([6-9]\d{4}[\s-]?\d{5})/.exec(reqNote(d)) || [])[2])}">📞</a>` : ''}</div></div>`
       : phase !== 'drop' && d.event ? '<div class="dg"><div><span class="mut">कोऑर्डिनेटर लोग बैठाएँगे · coordinator will send people</span></div></div>' : '';
     main = `<div class="dstate ${i.late && !i.done ? 'late' : ''}">
       <div class="ph">${bi((title2 || title)[0], (title2 || title)[1])}</div>
