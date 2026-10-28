@@ -318,7 +318,7 @@ function render(){
 /* ---------- editor ---------- */
 const byId = id => guests.find(g=>g.id===id);
 const roommates = g => g.room && g.room!=="NONE" ? guests.filter(x=>x.room===g.room && x.id!==g.id) : [];
-function trackUrl(mode,no){ if(!no) return ""; const n=no.replace(/\s/g,""); if(mode==="FLIGHT") return "https://www.flightradar24.com/data/flights/"+n.toLowerCase(); if(mode==="TRAIN") return "https://www.railyatri.in/live-train-status/"+n; return ""; }
+function trackUrl(mode,no){ if(!no) return ""; const n=no.replace(/\s/g,""); if(mode==="FLIGHT") return "https://www.google.com/search?q="+n.toUpperCase()+"+flight+status"; if(mode==="TRAIN") return "https://www.railyatri.in/live-train-status/"+n; return ""; }
 function travelBlock(P, g, label){
   const url = trackUrl(g[P+"Mode"], g[P+"No"]);
   return `<fieldset><legend>${label}${url?` <a class="track" href="${url}" target="_blank" rel="noopener">Track ${esc(g[P+"No"])}</a>`:""}</legend>
