@@ -236,7 +236,9 @@
   .empty.sm{padding:14px 10px;font-size:14px}
   .chips.st2 span{font-size:13px}
   .fr.tap{cursor:pointer} .fr.dim2{opacity:.55}
-  .bkh{padding:10px 14px 4px;font-weight:600;font-size:14.5px}.bkh span{display:block;font-weight:500;color:var(--mut);font-size:12.5px;margin-top:2px}
+  .bkc{margin-top:10px}.bkh{padding:12px 34px 12px 14px;font-weight:700;font-size:15px;cursor:pointer;list-style:none;position:relative}.bkh::-webkit-details-marker{display:none}
+  .bkh::after{content:'›';position:absolute;right:14px;top:10px;font-size:20px;color:var(--mut);transition:transform .15s}.bkc[open] .bkh::after{transform:rotate(90deg)}
+  .bkh span{display:block;font-weight:500;color:var(--mut);font-size:12.5px;margin-top:2px}.bkh2{padding:0 14px 6px;font-size:12px;color:var(--mut)}
   .bkcab{padding:8px 14px;font-size:13.5px;color:var(--mut);border-top:1px solid var(--line)} .bkact{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)} .bkact .btn{flex:1}
   .tbadge{background:#1d4ed8;color:#fff;border-radius:6px;padding:1px 7px;font-size:12.5px;letter-spacing:.3px}
   .dterm{display:inline-block;background:#1d4ed8;color:#fff;border-radius:10px;padding:4px 14px;font-size:22px;font-weight:800;margin:4px 0 6px}
@@ -1052,22 +1054,33 @@ function quickDriver(c, back) {
 }
 /* vendor booking: when each hired car reports at the hotel and when it is released */
 function bookOf(date, car) { return ((S.base && S.base.booking) || (S.drv && S.drv.booking) || []).find(b => b.date === date && b.car === car) || null; }
+function bookingDay(date, bk) {
+  return ['*' + dayLabel(date) + '* · ' + bk.length + ' car' + (bk.length === 1 ? '' : 's')].concat(
+    bk.map((b, k) => (k + 1) + '. ' + b.car + ' · *' + hm(b.from) + ' – ' + hm(b.to) + '* · ' + b.hours + ' h' + (b.toAt && b.toAt !== 'HOTEL' ? ' (released at ' + sp(b.toAt) + ')' : '')));
+}
 function bookingText(date, bk) {
-  return ['*Cars needed · ' + dayLabel(date) + '*', 'Report at ' + pname('HOTEL') + ' at the time shown', ''].concat(
-    bk.map(b => b.car + ': ' + hm(b.from) + ' to ' + hm(b.to) + ' (' + b.hours + ' h, ' + b.pkg + ')')).join('\n');
+  return ['*Car booking*', 'All cars report at ' + pname('HOTEL') + ' at the time shown.', ''].concat(bookingDay(date, bk)).join('\n');
+}
+function bookingAllText() {
+  const all = (S.base.booking || []).slice().sort((a, b) => a.from - b.from), days = [...new Set(all.map(b => b.date))].sort();
+  const L = ['*Car booking · all days*', 'All cars report at ' + pname('HOTEL') + ' at the time shown.'];
+  days.forEach(d => { L.push(''); bookingDay(d, all.filter(b => b.date === d)).forEach(x => L.push(x)); });
+  return L.join('\n');
 }
 function bookingCard(date) {
   const bk = ((S.base.booking) || []).filter(b => b.date === date).sort((a, b) => a.from - b.from);
   const cabs = new Set(S.base.duties.filter(d => d.date === date && isCab(d)).map(d => d.key)).size;
   if (!bk.length && !cabs) return '';
   const pk = {}; bk.forEach(b => pk[b.pkg] = (pk[b.pkg] || 0) + 1);
-  return `<div class="sec">To book · ${dayLabel(date)} <span class="n">${bk.length}</span></div><div class="card np bkc">
-    <div class="bkh">${bk.length} car${bk.length === 1 ? '' : 's'}${Object.keys(pk).length ? ' · ' + Object.keys(pk).map(k => pk[k] + ' × ' + esc(k)).join(', ') : ''}<span>Time = reports at hotel → released</span></div>
+  const first = bk.length ? hm(bk[0].from) : '';
+  return `<details class="card np bkc" id="bkd" ${store.get('la_bk_open') === '1' ? 'open' : ''}><summary class="bkh">📋 To book · ${bk.length} car${bk.length === 1 ? '' : 's'}${cabs ? ' + ' + cabs + ' cab' + (cabs === 1 ? '' : 's') : ''}
+      <span>${Object.keys(pk).map(k => pk[k] + ' × ' + esc(k)).join(', ')}${first ? ' · first at hotel ' + first : ''}</span></summary>
+    <div class="bkh2">Time = reports at hotel → released</div>
     ${bk.map(b => `<div class="fr tap" data-ct="${esc(b.car)}"><div class="cn sm">${esc(b.car.replace('Car ', ''))}</div>
       <div class="mid"><div class="t2">${hm(b.from)} → ${hm(b.to)} <span class="mut" style="font-weight:500">· ${b.hours} h</span></div>
       <div class="s">${b.trips} trip${b.trips === 1 ? '' : 's'} · ends at ${esc(sp(b.toAt))} · ${esc(b.pkg)}</div></div><span class="mut">›</span></div>`).join('')}
     ${cabs ? `<div class="bkcab">🚕 ${cabs} cab ride${cabs === 1 ? '' : 's'} - book on the day</div>` : ''}
-    ${bk.length ? `<div class="bkact"><a class="btn" target="_blank" href="${waLink('', bookingText(date, bk))}">💬 Send to vendor</a><button class="btn" id="bk_cp">📋 Copy</button></div>` : ''}</div>`;
+    ${bk.length ? `<div class="bkact"><a class="btn" target="_blank" href="${waLink('', bookingText(date, bk))}">💬 This day</a><a class="btn" target="_blank" href="${waLink('', bookingAllText())}">💬 All days</a><button class="btn" id="bk_cp">📋 Copy</button></div>` : ''}</details>`;
 }
 
 /* one car's whole day: every trip in order, tap one to open it */
@@ -1294,7 +1307,7 @@ function viewCarsTab() {
   const v = viewCars(), fr = S.date === opDay(S.base.duties) ? freeNow(S.date).sort((a, b) => a.from - b.from) : [];
   const bk = ((S.base.booking) || []).filter(b => b.date === S.date).sort((a, b) => a.from - b.from);
   return { html: bookingCard(S.date) + (fr.length ? `<div class="sec">Free now <span class="n">${fr.length}</span></div><div class="card np">${fr.map(fcard).join('')}</div>` : '') + '<div class="sec">All cars</div>' + v.html,
-    wire() { v.wire(); const b = $('#bk_cp'); if (b) b.onclick = () => { try { navigator.clipboard.writeText(bookingText(S.date, bk)).then(() => toast('Copied')); } catch (e) { toast('Copy failed'); } }; } };
+    wire() { v.wire(); const dk = $('#bkd'); if (dk) dk.ontoggle = () => store.set('la_bk_open', dk.open ? '1' : '0'); const b = $('#bk_cp'); if (b) b.onclick = () => { try { navigator.clipboard.writeText(bookingText(S.date, bk)).then(() => toast('Copied')); } catch (e) { toast('Copy failed'); } }; } };
 }
 function renderAdmin() {
   if (['cars', 'team', 'plan'].indexOf(S.admin) < 0) S.admin = 'cars';
