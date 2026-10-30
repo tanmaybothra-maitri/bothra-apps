@@ -112,6 +112,7 @@
   .switch input:checked{background:var(--pri)} .switch input:checked:before{left:23px}
   .seg{display:flex;background:#e8eae6;border-radius:12px;padding:3px;margin-bottom:12px}
   .seg button{flex:1;border:0;background:none;padding:9px;border-radius:10px;font-size:14px;font-weight:600;color:var(--mut);cursor:pointer}
+  .seg.kf button{padding:8px 4px;font-size:13px}.seg.kf small{color:var(--mut);font-weight:500}
   .seg button.on{background:#fff;color:var(--ink);box-shadow:var(--sh)}
   @keyframes up{from{transform:translateY(30px);opacity:0}to{transform:none;opacity:1}}
   @keyframes fade{from{opacity:0}to{opacity:1}}
@@ -795,12 +796,17 @@ function nowView() {
   let h = deskCard();
   h += `<button class="btn addt" id="addt">＋ Add trip</button>`;
   if (isToday) { const fr = freeHere(); h += `<button class="freec" id="freec">🅿️ <b>${fr.length}</b> car${fr.length === 1 ? '' : 's'} free ${L === 'ALL' ? 'now' : 'here now'}${fr.length ? '<span>' + fr.slice(0, 6).map(w => esc(w.car.replace('Car ', ''))).join(' · ') + ' ›</span>' : ''}</button>`; }
+  const kf = S.kf || (S.kf = store.get('la_kf') || 'all');
+  const isAD = d => d.type === 'Guest pickup' || d.type === 'Guest drop';
   const nN = nd.trips.length + nd.nocar.length;
   if (nN) h += `<div class="sec red">⚠ Needs you <span class="n">${nN}</span></div>` +
     nd.nocar.map(j => noCarCard(j, L)).concat(nd.trips.map(i => tripCard(i.d, dirOf(i.d, L), i.flag))).join('');
-  const mine = ds.filter(d => (L === 'ALL' || inLoc(d.from, L) || inLoc(d.to, L)) && !flagged[d.key])
+  let mine = ds.filter(d => (L === 'ALL' || inLoc(d.from, L) || inLoc(d.to, L)) && !flagged[d.key])
     .filter(d => { const s = statusMap()[d.key]; return !(s && s.status === 'Cancelled'); })
     .sort((a, b) => tOf(a, dirOf(a, L)) - tOf(b, dirOf(b, L)));
+  const nAD = mine.filter(isAD).length;
+  h += `<div class="seg kf">${[['all', 'All', ''], ['ad', 'Arrivals & departures', nAD], ['tr', 'Transfers', mine.length - nAD]].map(t => `<button data-kf="${t[0]}" class="${kf === t[0] ? 'on' : ''}">${t[1]}${t[2] !== '' ? ` <small>${t[2]}</small>` : ''}</button>`).join('')}</div>`;
+  if (kf !== 'all') mine = mine.filter(d => isAD(d) === (kf === 'ad'));
   if (!isToday) {
     h += `<div class="sec">All trips · ${dayLabel(S.date)} <span class="n">${mine.length}</span></div>` + (cardsOf(mine, L) || '<div class="empty">No trips on this day</div>');
     return h;
@@ -848,6 +854,7 @@ function renderCoord() {
   wireTripTaps();
   if ($('#freec')) $('#freec').onclick = freeSheet;
   if ($('#addt')) $('#addt').onclick = addTripSheet;
+  $$('[data-kf]').forEach(b => b.onclick = () => { S.kf = b.dataset.kf; store.set('la_kf', S.kf); render(); });
   $$('details.more').forEach(x => x.ontoggle = () => { if (x.id === 'later') S.openLater = x.open; });
   window.scrollTo(0, y);
 }
